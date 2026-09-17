@@ -62,6 +62,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   end-to-end suite against the binary it just produced.
 - CI hygiene guard now also checks that no vendor name, version string,
   absolute path or non-ASCII character has been committed.
+- `example/reference_host.dart`, a runnable host that walks negotiate ->
+  capabilities -> open -> shutdown and degrades gracefully when the station
+  will not serve it, which is what every host has to do anyway.
 
 ### Removed
 
@@ -80,7 +83,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TODO(relay): discovery from neutral signals, with conservative class mapping.
 - TODO(relay): dynamic binding layer.
 - TODO(transport): unix domain socket and named pipe transports.
-- TODO(example): reference host demonstrating negotiate -> caps -> open -> post.
 
 ## [0.1.0] - 2026-09-18
 
