@@ -131,6 +131,37 @@ jobs:
           echo "$f: $lines lines"
           [ "$lines" -gt 100 ] || { echo "::error::Protocol spec looks truncated"; exit 1; }
 
+  native:
+    name: Relay station (native build, unit and end-to-end)
+    runs-on: ubuntu-latest
+    env:
+      PUB_CACHE: ${{ github.workspace }}/.pub-cache
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Native tests
+        run: ctest --test-dir build --output-on-failure
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Resolve dependencies
+        run: dart pub get
+
+      # The Dart suite skips the end-to-end file when no station has been built.
+      # Here one has, so point it at the binary and the tests actually run.
+      - name: End to end, host process to station process
+        env:
+          OAK_BARRELS_STATION: ${{ github.workspace }}/build/oak-barrels
+        run: dart test test/end_to_end_test.dart
+
   dart:
     name: Dart client
     runs-on: ubuntu-latest

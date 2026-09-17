@@ -1,0 +1,130 @@
+/// End to end: a real host process talking to a real station process.
+///
+/// The other suites test each side against a fake. This one spawns the actual
+/// binary and speaks the actual protocol over actual pipes, because two fakes
+/// can agree with each other about a protocol neither end implements.
+///
+/// Skipped when the station has not been built, so the Dart suite still passes
+/// on a machine with no native toolchain. CI runs this file in the job that
+/// builds the station first and points OAK_BARRELS_STATION at the result.
+library;
+
+import 'dart:io';
+
+import 'package:oak_barrels/oak_barrels.dart';
+import 'package:test/test.dart';
+
+/// Locates the station binary, or null when it has not been built.
+String? findStation() {
+  final override = Platform.environment['OAK_BARRELS_STATION'];
+  if (override != null && override.isNotEmpty) {
+    return File(override).existsSync() ? override : null;
+  }
+
+  final name = Platform.isWindows ? 'oak-barrels.exe' : 'oak-barrels';
+  for (final candidate in <String>['build/$name', '../build/$name']) {
+    if (File(candidate).existsSync()) return candidate;
+  }
+  return null;
+}
+
+void main() {
+  final station = findStation();
+  final skipReason = station == null
+      ? 'the station is not built; run: cmake -S . -B build && cmake --build build'
+      : null;
+
+  /// Spawns a station and completes the handshake.
+  Future<Relay> connected() async {
+    final relay = await Relay.spawn(station!);
+    await relay.negotiate();
+    return relay;
+  }
+
+  group('end to end', () {
+    test('negotiates revision 1 over a real pipe', () async {
+      final relay = await connected();
+      addTearDown(relay.dispose);
+
+      expect(relay.revision, 1);
+    });
+
+    test('reports no capability classes, because it has no engine', () async {
+      final relay = await connected();
+      addTearDown(relay.dispose);
+
+      final caps = await relay.capabilities();
+      expect(caps.classes, isEmpty);
+      expect(caps.limits, isEmpty);
+      expect(caps.bulk, isFalse);
+    });
+
+    test('refuses to open a target, and says why with a reason code', () async {
+      final relay = await connected();
+      addTearDown(relay.dispose);
+
+      // Refusing is the correct behaviour for a station with no engine behind
+      // the pipe. Advertising a class it cannot honour would be the
+      // over-claiming that protocol section 10 forbids.
+      await expectLater(
+        relay.open('emitter', name: 'ui'),
+        throwsA(isA<RelayException>()
+            .having((error) => error.reason, 'reason', ReasonCode.noEngine)),
+      );
+    });
+
+    test('close is idempotent for a handle that was never opened', () async {
+      final relay = await connected();
+      addTearDown(relay.dispose);
+
+      await expectLater(relay.close(999), completes);
+    });
+
+    test('diagnostics are refused until the host opts in', () async {
+      final relay = await connected();
+      addTearDown(relay.dispose);
+
+      await expectLater(
+        relay.diagnostics(),
+        throwsA(isA<RelayException>().having(
+            (error) => error.reason, 'reason', ReasonCode.diagDisabled)),
+      );
+    });
+
+    test('opting in yields a report that identifies nothing', () async {
+      final relay = await connected();
+      addTearDown(relay.dispose);
+
+      final report = await relay.diagnostics(enable: true);
+      expect(report.diagnosticsEnabled, isTrue);
+      // Identification is a separate switch, and the station never turns it on
+      // for itself.
+      expect(report.identificationEnabled, isFalse);
+      expect(report.revision, 1);
+      expect(report.classes, isEmpty);
+      expect(report.resolvedSymbolCount, 0);
+    });
+
+    test('shuts down cleanly', () async {
+      final relay = await connected();
+      await expectLater(relay.shutdown(), completes);
+    });
+
+    test('says nothing about an engine when asked for its own version',
+        () async {
+      final result = await Process.run(station!, <String>['--version']);
+      expect(result.exitCode, 0);
+
+      final lines = (result.stdout as String).trim().split('\n');
+      // One line: the station's own version. Nothing about the machine, and
+      // nothing about an engine, because it has not looked at one yet.
+      expect(lines, hasLength(1));
+      expect(lines.single, startsWith('oak-barrels '));
+    });
+
+    test('rejects an argument it does not understand', () async {
+      final result = await Process.run(station!, <String>['--frobnicate']);
+      expect(result.exitCode, 2);
+    });
+  }, skip: skipReason);
+}
