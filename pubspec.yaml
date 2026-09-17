@@ -1,34 +1,31 @@
 name: flutter_wwise
 description: >-
-  Unofficial Audiokinetic Wwise integration for Flutter on Windows, Linux and
-  Android, built on dart:ffi. Unity and Unreal have official Wwise integrations;
-  Flutter does not — this package fills that gap.
+  A neutral relay client. Speaks a local pipe protocol to a relay station that
+  bridges to whatever audio engine is installed on the machine. Belongs to no
+  vendor, links nothing at build time, and carries no version constants.
 version: 0.1.0
 repository: https://github.com/Nesarf/flutter-wwise
 issue_tracker: https://github.com/Nesarf/flutter-wwise/issues
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
-  flutter: ">=3.22.0"
 
+# No Flutter SDK dependency on purpose.
+#
+# The relay client is transport + protocol only. It does not touch a canvas, a
+# widget tree, or a platform channel. Hosts happen to be Flutter apps most of
+# the time; that is a usage pattern, not a requirement. Keeping this package
+# Flutter-free is also what lets it be tested with plain `dart test`.
 dependencies:
-  flutter:
-    sdk: flutter
-  ffi: ^2.1.0
+  # Intentionally empty. dart:io provides Socket, Process and stdio — all three
+  # transports from the protocol specification.
 
 dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^4.0.0
-  ffigen: ^13.0.0
+  test: ^1.25.0
+  lints: ^4.0.0
 
-flutter:
-  plugin:
-    platforms:
-      windows:
-        ffiPlugin: true
-      linux:
-        ffiPlugin: true
-      android:
-        package: dev.hollowcourt.flutter_wwise
-        pluginClass: FlutterWwisePlugin
+# There is deliberately no `plugin:` section.
+#
+# A platform plugin would be compiled against a native SDK at build time, which
+# contradicts the relay design: nothing here is known until run time. The relay
+# station is a separate process, not an embedded library.

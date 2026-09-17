@@ -10,57 +10,117 @@ env:
   PUB_CACHE: ${{ github.workspace }}/.pub-cache
 
 jobs:
-  analyze:
-    name: Analyze (Dart)
+  hygiene:
+    name: Repository hygiene (neutrality guards)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+
+      - name: No third-party SDK content
+        run: |
+          set -euo pipefail
+          echo "== guarding against redistributed third-party SDK content =="
+          fail=0
+          if git ls-files | grep -Ei '(^|/)AK/.*\.h$'; then
+            echo "::error::Third-party SDK headers appear to be committed."; fail=1
+          fi
+          if git ls-files | grep -Ei '\.(a|lib|dll|so|dylib)$'; then
+            echo "::error::Native libraries appear to be committed."; fail=1
+          fi
+          if git ls-files | grep -Ei '\.(bnk|wem|wproj|wwu)$'; then
+            echo "::error::Engine runtime/authoring artifacts appear to be committed."; fail=1
+          fi
+          [ "$fail" -eq 0 ] && echo "ok: no third-party SDK content"
+
+      - name: No version strings in tracked text
+        run: |
+          set -euo pipefail
+          echo "== guarding against build fingerprints =="
+          # A dotted numeric version of four components (N.N.N.N) is a build
+          # fingerprint, not a semantic version. Semantic versions in prose such
+          # as 1.2.3 are fine and are deliberately not matched.
+          # CONTRIBUTING.md illustrates both permitted and forbidden forms, so
+          # it is exempt from this scan.
+          files=$(git ls-files '*.md' '*.dart' '*.c' '*.cc' '*.cpp' '*.h' '*.hpp' \
+                             '*.cmake' 'CMakeLists.txt' '*.yml' '*.yaml' \
+                  | grep -v '^CONTRIBUTING.md$' || true)
+          if [ -z "$files" ]; then echo "no text files to scan"; exit 0; fi
+          if echo "$files" | xargs grep -nE '\b[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\b'; then
+            echo "::error::A four-component version string was found. Remove it."
+            exit 1
+          fi
+          echo "ok: no four-component version strings"
+
+      - name: No absolute paths in tracked text
+        run: |
+          set -euo pipefail
+          echo "== guarding against machine-specific paths =="
+          files=$(git ls-files '*.md' '*.dart' '*.c' '*.cc' '*.cpp' '*.h' '*.hpp' \
+                             '*.cmake' 'CMakeLists.txt' '*.yml' '*.yaml' \
+                  | grep -v '^CONTRIBUTING.md$' || true)
+          if [ -z "$files" ]; then echo "no text files to scan"; exit 0; fi
+
+          # A path prefix must be preceded by start-of-line or whitespace, and
+          # followed by a path separator plus a name character. Requiring the
+          # leading context is what keeps `https://…` from matching: there the
+          # letter before `:/` is part of a scheme, not a drive letter.
+          win='(^|[[:space:]"'"'"'(])[A-Za-z]:[\\/][A-Za-z0-9_.]'
+          unix='(^|[[:space:]"'"'"'(])/(home|Users|opt|usr/local)/[A-Za-z0-9_.]'
+
+          if echo "$files" | xargs grep -nE "$win"; then
+            echo "::error::A Windows absolute path was found. Use a placeholder."
+            exit 1
+          fi
+          if echo "$files" | xargs grep -nE "$unix"; then
+            echo "::error::A unix absolute path was found. Use a placeholder."
+            exit 1
+          fi
+          echo "ok: no absolute paths"
+
+      - name: Vendor names stay out of code and protocol
+        run: |
+          set -euo pipefail
+          echo "== guarding against de-facto vendor coupling =="
+          # Allowed: README prose, LICENSE non-affiliation, CHANGELOG history,
+          # and the package name itself (an identifier, not a statement).
+          # Forbidden: source, protocol spec, build files.
+          files=$(git ls-files 'lib/**' 'src/**' 'docs/**' \
+                             '*.cmake' 'CMakeLists.txt' 2>/dev/null || true)
+          if [ -z "$files" ]; then echo "no source files yet"; exit 0; fi
+          if echo "$files" | xargs grep -niE '(audiokinetic|wwise|flutter)' 2>/dev/null; then
+            echo "::error::A vendor or framework name appears in code, protocol or build files."
+            echo "         Neutrality rule: names belong in prose, never in implementation."
+            exit 1
+          fi
+          echo "ok: no vendor names in implementation surfaces"
+
+  protocol:
+    name: Protocol document
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Spec is present and non-trivial
+        run: |
+          set -euo pipefail
+          f=docs/RELAY_PROTOCOL.md
+          test -f "$f" || { echo "::error::$f is missing"; exit 1; }
+          lines=$(wc -l < "$f")
+          echo "$f: $lines lines"
+          [ "$lines" -gt 100 ] || { echo "::error::Protocol spec looks truncated"; exit 1; }
+
+  dart:
+    name: Dart client
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
         with:
-          channel: stable
-          cache: true
+          sdk: stable
       - name: Resolve dependencies
-        run: flutter pub get
+        run: dart pub get
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
       - name: Analyze
-        run: flutter analyze --no-fatal-infos
-
-  test:
-    name: Test (Dart)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - run: flutter pub get
-      - name: Run tests
-        # Native integration tests require a Wwise SDK and are therefore not
-        # run in CI. Only pure-Dart logic is covered here.
-        run: flutter test
-
-  hygiene:
-    name: Repository hygiene
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Ensure no Wwise SDK content is committed
-        run: |
-          set -euo pipefail
-          echo "Scanning for Wwise SDK artifacts..."
-          # Wwise headers are namespaced under AK/ and are the clearest tell.
-          if git ls-files | grep -Ei '(^|/)AK/.*\.h$'; then
-            echo "::error::Wwise SDK headers appear to be committed. Remove them."
-            exit 1
-          fi
-          if git ls-files | grep -Ei '(AkSoundEngine|libAkSoundEngine|AkSoundEngineDLL)\.(lib|dll|a|so)$'; then
-            echo "::error::Wwise engine binaries appear to be committed. Remove them."
-            exit 1
-          fi
-          if git ls-files | grep -Ei '\.(bnk|wem|wproj)$'; then
-            echo "::error::Wwise runtime/authoring artifacts appear to be committed. Remove them."
-            exit 1
-          fi
-          echo "Clean: no Wwise SDK content found."
+        run: dart analyze --fatal-infos
+      - name: Test
+        run: dart test

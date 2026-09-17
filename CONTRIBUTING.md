@@ -1,84 +1,123 @@
 # Contributing to flutter_wwise
 
-Thanks for considering a contribution. This project exists because Audiokinetic
-does not ship a Flutter integration — so community effort is the whole point.
+Thanks for considering a contribution. This project exists as a **neutral
+relay** — it belongs to neither side of the pipe. Keeping it that way is the
+main thing contributors need to help with.
 
 ## Before you start
 
-**You need your own Wwise installation.** This repository deliberately contains
-no Wwise SDK files. Install Wwise via the Audiokinetic Launcher, then point
-`WWISE_SDK_ROOT` at its `SDK` directory:
-
-```powershell
-$env:WWISE_SDK_ROOT = "C:\Program Files (x86)\Audiokinetic\Wwise <VERSION>\SDK"
-```
+Nothing needs to be installed to work on the relay. It has **no third-party
+build dependencies**, by design — it links no vendor SDK at build time.
 
 ```bash
-export WWISE_SDK_ROOT=/opt/wwise/<VERSION>/SDK
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+
+dart pub get
+dart test
 ```
 
-Never commit anything from the SDK. `.gitignore` already blocks the common
-paths, but please double-check before opening a pull request.
+If a change you are making would require reading a vendor SDK path at configure
+time, stop and open an issue first. That is a design regression, not a feature.
 
-## Development setup
+## The two rules that keep this project neutral
+
+### Rule 1 — Nothing identifying gets committed
+
+**No version numbers, no absolute paths, no machine details, no build
+fingerprints.** Not in source, not in docs, not in comments, not in fixtures,
+not in issue descriptions pasted into the repository.
+
+Concretely, do not commit:
+
+| Never commit | Why |
+| --- | --- |
+| Exact version strings of any tool, SDK, runtime or library | Turns the repository into a fingerprint of one machine |
+| Absolute paths (`C:\...`, `/home/...`, `/opt/...`) | Leaks user names, directory layouts, organisational context |
+| Recorded environment dumps, `--version` output pasted as evidence | Same, in bulk |
+| Vendor product names in code paths, defaults, or protocol constants | Makes the relay a de-facto integration for one product |
+| Machine or user identifiers of any kind | Should never be collected at all, let alone stored |
+
+Where documentation needs to illustrate a command, use a **placeholder**:
 
 ```bash
-flutter --version          # >= 3.22
-dart --version             # >= 3.4
+# Good
+export RT_SDK_DIR=/path/to/your/installation
 
-flutter pub get
-dart run build_runner build --delete-conflicting-outputs   # ffigen bindings (once wired)
+# Bad — this is somebody's actual disk layout
+export RT_SDK_DIR=/opt/vendor/2024.1.14.9084/SDK
 ```
+
+Vendor names are permitted in exactly two places: the LICENSE file (where a
+non-affiliation statement is legally meaningful) and prose that explicitly
+discusses a third-party project by name. They must never appear in code,
+constants, defaults, or the wire protocol.
+
+CI enforces this. See the `hygiene` job in `.github/workflows/ci.yml`.
+
+### Rule 2 — Nothing is known at build time
+
+A compile-time constant that encodes a version, a path, or a vendor is a bug,
+however convenient it is. Compatibility is expressed as **classes** (see
+`docs/RELAY_PROTOCOL.md` §4.3 and §10), and classes are decided at run time.
+
+When signals are ambiguous, map to a **narrower** class, never a broader one.
+Under-claiming degrades gracefully. Over-claiming crashes on the user's machine.
 
 ## What we need most
 
 | Area | Why it matters |
 | --- | --- |
-| **Platform build reports** | CI cannot cover every Wwise version × platform combination. If you got it building on your machine, say so — with your Wwise version, OS, and compiler. |
-| **SDK version differences** | Wwise changes its headers across releases. A shim that compiles on 2024.1 but not 2023.1 is a bug worth reporting. |
-| **Audio backend integration** | Getting the engine to actually output sound on each platform is the hard part. Notes, patches and failure logs are all welcome. |
-| **Documentation** | Especially the "I wish I'd known this earlier" kind. |
+| **Transport implementations** | Unix socket, named pipe, stdio. Intrinsically platform-shaped; patches welcome. |
+| **Discovery strategies** | Finding candidate installations from neutral signals is the hardest correctness problem here. Conservative heuristics with honest failure modes are valuable. |
+| **Protocol review** | The protocol is the expensive thing to change later. Argument with it now is cheaper than argument after implementation. |
+| **Redaction adversarial review** | Try to find a path by which a version or path still leaks. Then tell us. |
+| **Cross-platform build reports** | Which platforms and toolchains actually work, stated without naming versions you would rather not disclose. |
 
 ## Ground rules
 
-1. **Keep the public Dart API small.** A narrow surface that works beats a broad
-   one that half-works. Propose additions in an issue first.
-2. **No SDK files, ever.** Not headers, not `.lib`, not `.dll`, not `.a`.
-   Nothing from an Audiokinetic installation belongs in a commit.
-3. **Errors must be typed.** Do not leak raw Wwise integer return codes to Dart
-   callers; map them to exceptions with meaning.
-4. **One concern per pull request.** Platform build fixes and API changes should
-   not travel together.
+1. **Keep the wire protocol small.** Additions need an issue and a rationale.
+   A narrow protocol both sides can implement beats a rich one that half-works.
+2. **Failures must be typed.** Reason codes per protocol §6, never free-form
+   strings that happen to contain identifying text.
+3. **Diagnostics stay opt-in and redacted.** Anything that increases what the
+   relay says by default needs a very good argument.
+4. **No persistence of discovered facts.** If you find yourself wanting to
+   cache something keyed by path or version, that is the host's job, not ours.
+5. **One concern per pull request.**
 
 ## Commit messages
 
-Conventional Commits style, scope optional but appreciated:
+Conventional Commits style; scope optional but appreciated.
 
 ```
-feat(shim): add hc_wwise_set_switch
-fix(windows): resolve SDK path with spaces correctly
-docs(readme): correct Android ABI list
-build(cmake): link AkSoundEngine statically on Linux
+feat(transport): add unix domain socket transport
+feat(discovery): conservative class mapping for ambiguous signals
+fix(protocol): reject zero-length frames before reading payload
+docs(protocol): clarify that reason codes must not carry paths
+build(cmake): remove configure-time vendor path lookup
 ```
 
 ## Pull request checklist
 
-- [ ] `flutter analyze` is clean
-- [ ] `flutter test` passes
-- [ ] No Wwise SDK content is staged (`git status` reviewed)
+- [ ] `cmake --build build` succeeds
+- [ ] `dart analyze` is clean
+- [ ] `dart test` passes
+- [ ] No version strings, absolute paths, or vendor names introduced outside
+      the two permitted places (checked by the CI hygiene job)
+- [ ] No new build-time dependency on any vendor SDK
 - [ ] `CHANGELOG.md` updated under `[Unreleased]`
-- [ ] If the change is platform-specific, the platform and Wwise version are stated
+- [ ] Protocol changes are reflected in `docs/RELAY_PROTOCOL.md`, which is
+      normative — if the doc and the code disagree, the doc wins and the code
+      is wrong
 
 ## Reporting a build failure
 
-Please include:
-
-- OS and version
-- Wwise version (e.g. `2024.1.14.9084`)
-- Flutter and Dart versions
-- Compiler / NDK version
-- The **full** build log, not the last line
-- Whether `WWISE_SDK_ROOT` was set, and to what
+Please include the **full** build log and the operating system. You are
+**not** expected to disclose exact tool, SDK or runtime versions, and you
+should not paste absolute paths. If a maintainer needs more detail to
+reproduce, they will ask — and you can answer in terms of compatibility
+classes rather than builds.
 
 ## License
 

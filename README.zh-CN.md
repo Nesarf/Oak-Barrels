@@ -1,155 +1,143 @@
 # flutter_wwise
 
-> **非官方**的 **Audiokinetic Wwise** × **Flutter** 集成 —— 覆盖 Windows / Linux / Android。
-> 基于 `dart:ffi`，不经 Unity，不经 Unreal。
+> 一座**中立的桥**——横在宿主应用（Flutter，或任何能打开本地管道的程序）
+> 与这台机器上恰好装着的音频引擎之间。
 
-[English](README.md) · **简体中文**
+**English** · [简体中文](README.zh-CN.md)
 
 ---
 
-## 它为什么存在
+## 这是什么
 
-Audiokinetic 为 **Unity** 与 **Unreal** 提供了官方 Wwise 集成。
-**Flutter 什么都没有**——一个口碑扎实的音频中间件，从 Flutter 应用里够不着。
-
-这个包就是那缺失的一层：把 Wwise 声音引擎链进 Flutter 应用，
-在上面暴露一套小巧、强类型的 Dart API。
+一座**中继站**——一个坐在两侧之间、让它们彼此交谈却互不知晓对方内里的进程。
 
 ```
-Flutter (Dart)  ──dart:ffi──▶  C 垫片  ──▶  Wwise 声音引擎
+┌──────────────────┐   管道   ┌────────────────────┐  动态加载 ┌──────────────────┐
+│  宿主应用         │◀───────▶│   中继站            │◀────────▶│  音频引擎         │
+│  (Flutter, …)    │          │   (本项目)          │          │  (用户自行安装)    │
+└──────────────────┘          └────────────────────┘          └──────────────────┘
 ```
 
-**为什么要 C 垫片**：Wwise 的 API 活在 C++ 命名空间里
-（`AK::SoundEngine::PostEvent`），而 `dart:ffi` 只能调用平坦的 C 符号。
-垫片把名字修饰、命名空间、版本差异一次收在这边，
-给 Dart 一层稳定、不会随 SDK 版本漂移的接口。
+它由三条性质定义：
+
+**一、它不隶属任何一方。**
+这**不是**「Wwise 的 Flutter 插件」，也**不是**「Flutter 的 Wwise 绑定」。
+它不随任何一方安装，构建期不依赖任何一方，也不与任何一方一同分发。
+它是一件独立存在的东西。
+
+**二、构建期不链接任何东西。**
+没有音频引擎的头文件，没有音频引擎的库，没有宿主框架的库。
+两侧的一切都在**运行时**被发现、被绑定。
+正因如此，「版本无关」才是一句能成立的话，而不是一句好听话。
+
+**三、它先探测，再适配。**
+启动时它先勘察这台机器上究竟有什么——引擎的安装、它们的版本、
+宿主侧运行时的能力——然后选择一种相容的交谈方式。
+**没有硬编码**，因为任何硬编码都等于本项目暗地里和某个版本结了婚。
+
+## 它不是什么
+
+- 与任何音频中间件厂商、任何 UI 框架厂商**无隶属、无背书、无赞助关系**。
+- **不是再分发渠道**。它不携带任何第三方二进制。
+- 不是任何 SDK 的分支、包装或重新打包。
+- 不是任何东西的构建期依赖。
+
+## 身为桥，带来的设计后果
+
+既然中继站不链接任何东西，它就无法在编译期直接调用引擎函数。
+于是它在**运行时**解析：
+
+```
+探测   →   勘察   →   协商   →   绑定   →   中继
+ │          │          │          │         │
+ │          │          │          │         └─ 转发调用、回传结果
+ │          │          │          └─ 动态解析符号
+ │          │          └─ 就双方都能说的协议修订达成一致
+ │          └─ 判定能力，且不预设任何版本
+ └─ 以中立、通用的信号寻找候选安装
+```
+
+每一阶段的规定见 [`docs/RELAY_PROTOCOL.md`](docs/RELAY_PROTOCOL.md)。
+
+### 为什么不干脆直接链接？
+
+直接链接**在当时**更简单——然后任何一方的每次发版，都逼着本项目重新编译；
+每个用户都必须恰好匹配维护者手头的那套版本。
+中继站是用一点点运行期复杂度，换一个真正要紧的性质：
+**当两侧各自演化时，它仍然能工作。**
+
+## 默认沉默
+
+中继站在设计上避免留下可被识别的痕迹：
+
+- 中继站二进制里**不编译进**任何厂商名、版本号、路径或构建指纹。
+- 运行时探测到的版本与路径**只留在内存**：不落盘、默认不进日志、
+  除非显式开启诊断模式，否则不回传管道。
+- 诊断输出默认**脱敏**：路径被约简为不透明标识符，
+  版本串被约简为相容类别，而非精确构建号。
+- 仓库不含任何机器专属配置，也不含任何被记录下来的环境细节。
+  维持这一点的规则写在 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+这件事之所以要紧，是因为**一个如实汇报你跑着什么版本的工具，就是一个给你打指纹的工具**。
+中继站应当有能力说出「相容」或「不相容」，而**不必说出它究竟看到了什么**。
 
 ## 状态
 
-**早期，pre-alpha，尚不可用于生产。**
+**Pre-alpha，尚无可用功能。**
+接口契约先于实现被固定下来，因为一座桥的协议，恰恰是事后最难改的东西。
 
 | 部件 | 状态 |
 | --- | --- |
-| 仓库骨架、文档、CI | ✅ |
-| C 垫片接口（已声明） | 🚧 进行中 |
-| Dart FFI 绑定 | 🚧 进行中 |
-| Windows 构建（CMake） | 🚧 进行中 |
-| Linux 构建 | ⏳ 计划中 |
-| Android 构建（NDK/CMake） | ⏳ 计划中 |
-| 示例应用 | ⏳ 计划中 |
+| 仓库骨架、协议文档、CI | ✅ |
+| 中继协议规范 | 🚧 进行中 |
+| 探测 / 勘察 / 协商逻辑 | ⏳ 计划中 |
+| 动态绑定层 | ⏳ 计划中 |
+| 管道传输（宿主侧） | ⏳ 计划中 |
+| 宿主侧 Dart 客户端 | ⏳ 计划中 |
+| 参考宿主示例 | ⏳ 计划中 |
 
-## 平台支持
+## 接口示意
 
-| 平台 | 引擎核心 | 形态 |
-| --- | --- | --- |
-| **Windows** x64 / ARM64 | `AkSoundEngineDLL.dll` + `AkSoundEngine.lib` | 动态 + 静态 |
-| **Linux** x64 / aarch64 | `libAkSoundEngine.a` | 静态 |
-| **Android** arm64-v8a / armeabi-v7a / x86_64 | `libAkSoundEngine.a` | 静态 |
-
-> ⚠️ **Wwise SDK 需您自备。** 本仓库**不含**任何 Wwise SDK 文件——
-> 没有头文件、没有库、没有工具。
-
-## 安装
-
-尚未发布至 pub.dev。目前请从 Git 依赖：
-
-```yaml
-dependencies:
-  flutter_wwise:
-    git:
-      url: https://github.com/Nesarf/flutter-wwise.git
-      ref: main
-```
-
-## 计划中的 API
-
-接口刻意保持窄小。核心稳下来之前，未列出的能力一律不在范围内。
+仅为示意——**权威是线上协议，不是这段代码**。
+请留意：其中**不出现任何版本号**，这是刻意的。
 
 ```dart
-import 'package:flutter_wwise/flutter_wwise.dart';
+// 宿主侧：打开一座中继站，与它交谈，而不知道它背后是什么。
+final relay = await Relay.connect();
 
-// 用你的 Init.bnk 初始化引擎
-await Wwise.init(initBankPath: 'assets/wwise/Init.bnk', sampleRate: 48000);
+final caps  = await relay.capabilities();   // 相容类别，而非版本
+final voice = await relay.open('emitter');
 
-// 加载 Wwise 授权工具产出的 SoundBank
-await Wwise.loadBank('Main.bnk');
+await relay.post('event.play',      target: voice, args: {'name': 'ice_drop'});
+await relay.set ('param.intensity', value: 0.82, target: voice);
+await relay.close(voice);
 
-// Game Object 标识「是谁在发声」
-final player = await Wwise.registerGameObject('player');
-
-// 触发 Wwise 里定义的 Event
-await Wwise.postEvent('Play_IceDrop', player);
-
-// 实时驱动 Game Parameter —— 例如摇壶摇得多用力
-await Wwise.setRtpc('ShakeIntensity', 0.82, player);
-
-await Wwise.renderAudio();          // 每个音频回调 / 帧预算调用一次
-await Wwise.unregisterGameObject(player);
-await Wwise.term();
+await relay.shutdown();
 ```
 
 ## 构建
 
-把 `WWISE_SDK_ROOT` 指向你的 Wwise SDK 目录（内含
-`include/`、`x64_vc170/`、`Linux_x64/`、`Android_arm64-v8a/` 等的那一层）：
-
-```powershell
-$env:WWISE_SDK_ROOT = "C:\Program Files (x86)\Audiokinetic\Wwise 2024.1.14.9084\SDK"
-```
+中继站**没有任何第三方构建依赖**。它不去读什么厂商 SDK 路径，
+因为它根本不链接厂商 SDK。
 
 ```bash
-export WWISE_SDK_ROOT=/opt/wwise/2024.1.14.9084/SDK
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
 ```
 
-随后构建示例应用：
+宿主侧客户端是纯 Dart，不需要原生工具链：
 
 ```bash
-cd example
-flutter run -d windows
+dart pub get
+dart test
 ```
 
-`src/cmake/` 里的构建胶水会按平台从 `WWISE_SDK_ROOT` 解析出正确的库并链入插件。
+## 非目标
 
-## 范围与非目标
-
-**范围内**
-
-- 初始化 / 关闭声音引擎
-- 加载与卸载 SoundBank
-- 注册与注销 Game Object
-- 触发 Event
-- 设置 Game Parameter（RTPC）与 Switch / State
-- 由宿主驱动 `RenderAudio`
-- 强类型的 Dart 错误，而非裸整数返回码
-
-**暂不在范围内**
-
-- Wwise 授权工具本身（那是 `WwiseConsole` 的事）
-- 超出引擎默认行为的空间音频
-- 打包或下载 Wwise SDK 内容
-
-## 关于 Wwise 授权
-
-本项目**独立、非官方**，与 Audiokinetic Inc. 无隶属、背书或赞助关系。
-
-Wwise 是商业软件。您需要自己的授权，并自行遵守其条款——
-**包括 Wwise 运行库随应用分发时的各项条件。**
-以 Audiokinetic 官方授权页面为准；本文件不构成法律意见。
-
-## 相关项目
-
-- [`pywwise`](https://pypi.org/project/pywwise/) — Python 版 WAAPI 封装，
-  驱动的是**授权工具**而非运行时，与本包互补
-- [`ww2ogg`](https://github.com/hcs64/ww2ogg) — 把 Wwise 的 RIFF/RIFX Vorbis
-  转成标准 Ogg Vorbis，用于从 SoundBank 中提取音频
-- Wwise SDK 文档，随您的安装包位于 `SDK/Help/`
-
-## 贡献
-
-见 [CONTRIBUTING.md](CONTRIBUTING.md)。尤其欢迎**平台构建报告**——
-CI 覆盖不到 Wwise 版本 × 平台的每一种组合。
+- **不重新实现音频引擎**。中继站运送指令，它不合成声音。
+- 不携带、不打包、不下载任何人的二进制。
+- 不做某一对厂商组合的「推荐路径」。它没有推荐可给，它只有一条管道可提供。
 
 ## 许可
 
 MIT —— 见 [LICENSE](LICENSE)。
-Wwise SDK 本身**不在**本许可范围内，且**不**随本仓库分发。
