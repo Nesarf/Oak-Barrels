@@ -162,6 +162,51 @@ void main() {
       expect(report.candidatesFound, 0);
     });
 
+    test('serves a unix socket when the host names one', () async {
+      // The platform's equivalent on Windows is a named pipe, and connecting to
+      // one needs a platform call Dart does not expose directly. Hosts there
+      // spawn the station instead, which works everywhere.
+      if (Platform.isWindows) return;
+
+      final directory = Directory.systemTemp.createTempSync('oak-e2e-socket-');
+      addTearDown(() {
+        if (directory.existsSync()) directory.deleteSync(recursive: true);
+      });
+      final socketPath = '${directory.path}/station.sock';
+
+      final process = await Process.start(
+        station!,
+        <String>['--listen', socketPath],
+      );
+      addTearDown(process.kill);
+
+      // The station binds before it can be connected to, so wait for the socket
+      // to appear rather than guessing at a delay.
+      final deadline = DateTime.now().add(const Duration(seconds: 15));
+      while (!File(socketPath).existsSync()) {
+        if (DateTime.now().isAfter(deadline)) {
+          fail('the station never created its socket');
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+
+      final relay = await Relay.attach(
+        await UnixSocketTransport.connect(socketPath),
+      );
+
+      expect(await relay.negotiate(), 1);
+      expect((await relay.capabilities()).classes, isEmpty);
+      await relay.shutdown();
+    });
+
+    test('refuses to serve two transports at once', () async {
+      final result = await Process.run(
+        station!,
+        <String>['--listen', 'a.sock', '--pipe', 'a-pipe'],
+      );
+      expect(result.exitCode, 2);
+    });
+
     test('rejects an argument it does not understand', () async {
       final result = await Process.run(station!, <String>['--frobnicate']);
       expect(result.exitCode, 2);

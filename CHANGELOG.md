@@ -31,10 +31,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   source using the machine's code page can build the same file differently in
   different regions. The substitution table is in `CONTRIBUTING.md`.
 
-- The station still claims no compatibility classes, and now says so after
-  having looked. Recognising a container format is not knowing a calling
-  convention, so it reports what it examined and offers nothing. Under-claiming
-  means a host does less; over-claiming crashes on a user's machine.
+- The station claims **only** the classes it proved, and says so after having
+  looked. A profile is satisfied when every symbol it names resolves; until
+  then, no class is offered at all. Recognising a container format is not
+  knowing a calling convention, so a format alone never yields a class.
+  Under-claiming means a host does less; over-claiming crashes on a user's
+  machine.
+
+- **A5 added to the protocol's axioms: every engine is assumed unlicensed.**
+  Nothing in discovery, probing or binding may depend on a licensed capability,
+  and a licence-gated capability is reported as absent rather than assumed
+  present. An unverifiable capability is an absent one, which is the same
+  conservatism the class mapping already required.
 
 - `pubspec.yaml` no longer declares a `plugin:` section and no longer depends
   on the Flutter SDK. The host-side client is transport and protocol only,
@@ -80,6 +88,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Diagnostics report how many files were examined and how many looked like
   modules. Counts, never paths: a path is a discovered fact and stays where it
   was found.
+- **The dynamic binding layer** (`src/relay/binding/`): mapping a module and
+  resolving a name inside it, and nothing else. It calls nothing, because
+  resolving a symbol says a name exists and says nothing about what happens when
+  it is called.
+- **Probe profiles** (`src/relay/probe/`): the host describes, as data, which
+  symbols a usable engine must export and how this relay will call them. The
+  vocabulary of calling shapes is deliberately two entries wide, and contains
+  only the shapes the protocol can actually deliver.
+- **Probing**, and a backend that offers only what it proved. A profile is
+  satisfied when every symbol it names resolves; every satisfied profile is
+  bound, so one module offering several capabilities reports all of them.
+- `--probe-profile`, and `--listen` / `--pipe` for the two non-stdio transports.
+- A unix domain socket transport (station and Dart client) and a named pipe
+  transport (station). Each serves exactly one peer and refuses a second, so a
+  host is never left guessing why nothing answered.
+- A stand-in engine in the test tree, and a fixture that proves the whole chain
+  end to end: scan, recognise a container format, load, resolve, bind, call, and
+  observe that the call landed. Nothing links the fixture, so the load path is
+  genuinely exercised rather than bypassed by the linker.
 
 ### Removed
 
@@ -91,14 +118,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Notes
 
-- The station currently runs with no engine backend. It therefore reports no
-  capability classes and refuses every `OPEN` with `NO_ENGINE`. Refusing is the
-  correct behaviour: advertising a class it cannot honour is exactly the
-  over-claiming that protocol section 10 forbids.
-- TODO(relay): probing, and the class mapping proper. Container formats are
-  recognised today but no calling shape is, so no class is claimable yet.
-- TODO(relay): dynamic binding layer.
-- TODO(transport): unix domain socket and named pipe transports.
+- The station binds whatever the host describes, and cannot invent a
+  description of its own. Until a profile says what to look for, no engine can
+  be found -- deliberately, and that is axiom A2 talking rather than an
+  unfinished stage.
+- TODO(client): a named pipe transport for the Dart host. Connecting to one
+  needs a platform call Dart does not expose, so a Windows host either spawns
+  the station or brings its own client. The station already serves pipes, and
+  the protocol is host-agnostic, so this is a gap in one client rather than in
+  the relay.
+- TODO(protocol): the bulk audio channel of section 7, which must stay on a
+  separate transport so that a slow audio consumer cannot stall control.
 
 ## [0.1.0] - 2026-09-18
 

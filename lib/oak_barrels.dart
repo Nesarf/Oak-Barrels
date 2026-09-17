@@ -17,3 +17,4 @@ export 'src/relay/frame.dart';
 export 'src/relay/reason.dart';
 export 'src/relay/transport.dart';
 export 'src/relay/transports/stdio_transport.dart';
+export 'src/relay/transports/unix_socket_transport.dart';

@@ -8,7 +8,7 @@
 
 ## 0. Design axioms
 
-These four rules generate most of the decisions below.
+These five rules generate most of the decisions below.
 
 **A1 -- The relay belongs to no vendor.**
 It is not an integration for a named product. Product names may appear as
@@ -27,6 +27,18 @@ transient facts; compatibility classes are stable ones.
 Paths, versions, and identifiers learned during discovery are not persisted,
 not logged by default, and not transmitted unless a capability explicitly
 requires it and the host has opted in.
+
+**A5 -- Every engine is assumed unlicensed.**
+The relay assumes that no engine on this machine carries a licence granted to
+this project. Nothing in discovery, probing or binding may depend on a licensed
+capability, and a capability that is licence-gated is reported as **absent**
+rather than assumed present.
+
+Two consequences follow, and both point the same way. The relay never
+redistributes content that a licence would have permitted it to ship, and it
+never claims a behaviour it cannot verify. The second is the same conservatism
+that A3 and section 10 already demand of class mapping: an unverifiable
+capability is an absent one.
 
 ---
 

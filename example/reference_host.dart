@@ -85,10 +85,13 @@ Future<void> _run(Relay relay) async {
   //    feature that needed it. Asking the station for more detail to work
   //    around the gap is exactly the version-sniffing this protocol exists to
   //    avoid.
-  if (!caps.supports('engine.action.named')) {
+  final canPost = caps.supports('engine.action.named');
+  final canSet = caps.supports('engine.param.continuous');
+
+  if (!canPost) {
     stdout.writeln('no action-capable class: one-shot actions will be skipped');
   }
-  if (!caps.supports('engine.param.continuous')) {
+  if (!canSet) {
     stdout.writeln('no continuous-parameter class: real-time control will be '
         'skipped');
   }
@@ -100,11 +103,18 @@ Future<void> _run(Relay relay) async {
   if (handle == null) {
     stdout.writeln('carrying on without a target');
   } else {
-    await relay.post(handle, 'ice_drop', args: <String, Object?>{'gain': 0.8});
-    stdout.writeln('posted an action to target $handle');
-
-    await relay.set(handle, 'intensity', 0.82);
-    stdout.writeln('set a continuous parameter on target $handle');
+    // And then actually skip what it said it would skip. A host that announces
+    // a degradation and then makes the call anyway has not degraded -- it has
+    // only narrated one.
+    if (canPost) {
+      await relay
+          .post(handle, 'ice_drop', args: <String, Object?>{'gain': 0.8});
+      stdout.writeln('posted an action to target $handle');
+    }
+    if (canSet) {
+      await relay.set(handle, 'intensity', 0.82);
+      stdout.writeln('set a continuous parameter on target $handle');
+    }
 
     await relay.close(handle);
     stdout.writeln('closed target $handle');

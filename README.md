@@ -110,25 +110,48 @@ tool that fingerprints you. The relay should be able to say "compatible" or
 
 ## Status
 
-**Pre-alpha. The protocol works and both ends of the pipe are implemented;
-there is nothing behind the pipe yet.**
+**Pre-alpha, and now genuinely useful in a narrow way.** A station binds an
+engine the host describes, and offers exactly the classes it proved.
 
-A station started today negotiates, reports its capabilities honestly, and
-refuses every `OPEN` with `NO_ENGINE` -- because discovery and binding, which
-are what would put an engine behind it, are not written yet. Refusing is the
-correct behaviour: advertising a compatibility class it cannot honour would be
-the over-claiming that protocol section 10 forbids.
+A station started with no nominated root and no profile examines nothing and
+refuses every `OPEN` with `NO_ENGINE` -- the conservative answer, and the right
+one for a relay that has been told nothing. Given a root and a profile, it
+examines what it finds, resolves the entry points that profile names, and offers
+only the classes whose every symbol resolved. Refusing is the correct
+behaviour: advertising a compatibility class it cannot honour is exactly the
+over-claiming that protocol section 10 forbids.
 
 | Piece | State |
 | --- | --- |
 | Repository scaffolding, protocol docs, CI | [x] |
 | Relay protocol specification | [x] revision 1, open to argument |
 | Frame codec, session state machine (native) | [x] |
-| stdio transport (both sides) | [x] |
+| stdio transport, both sides | [x] |
+| unix socket transport, station and Dart client | [x] |
+| named pipe transport, station | [x] |
 | Host-side client (Dart) | [x] |
-| Discovery / probe logic | [ ] planned |
-| Dynamic binding layer | [ ] planned |
-| Reference host example | [ ] planned |
+| Discovery from container format, host-nominated | [x] |
+| Probe profiles and dynamic binding | [x] |
+| Reference host example | [x] |
+| Named pipe client for the Dart host | [ ] needs a platform call Dart does not expose |
+| Bulk audio channel (protocol section 7) | [ ] a future revision |
+
+## Telling a station what to do
+
+The station is configured entirely by the host, at launch. Nothing below is
+baked into the build.
+
+| Flag | What it is for |
+| --- | --- |
+| *(none)* | serve one session over standard input and output |
+| `--listen <path>` | serve one connection on a unix domain socket |
+| `--pipe <name>` | serve one client on a named pipe |
+| `--search-root <dir>` | a directory to examine. Repeatable. |
+| `--probe-profile <file>` | how to talk to whatever is found there |
+
+Both the search location and the symbol names arrive at run time, from the host.
+That is how a station binds an engine it has never heard of, and why it can do
+so while shipping knowledge of no product at all.
 
 ## Interface
 
