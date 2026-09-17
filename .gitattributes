@@ -1,0 +1,52 @@
+# Normalize line endings across platforms.
+# Text files are stored with LF in the repository; Git checks them out with the
+# platform-native ending unless a rule below says otherwise.
+* text=auto eol=lf
+
+# Explicitly text
+*.dart    text
+*.yaml    text
+*.yml     text
+*.md      text
+*.h       text
+*.c       text
+*.cc      text
+*.cpp     text
+*.cmake   text
+CMakeLists.txt text
+*.json    text
+*.gradle  text
+*.properties text
+
+# Never touch these
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.webp    binary
+*.gif     binary
+*.ico     binary
+*.ttf     binary
+*.otf     binary
+
+# Native artifacts (should not be committed anyway — see .gitignore)
+*.dll     binary
+*.so      binary
+*.dylib   binary
+*.a       binary
+*.lib     binary
+*.pdb     binary
+
+# Audio (Wwise output must not be committed — see CI hygiene job)
+*.wav     binary
+*.ogg     binary
+*.bnk     binary
+*.wem     binary
+
+# Keep Windows scripts working on Windows
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
+*.ps1     text eol=crlf
+
+# Linguist: keep the repository's language stats honest
+src/shim/* linguist-language=C
+lib/src/ffi/*.generated.dart linguist-generated=true

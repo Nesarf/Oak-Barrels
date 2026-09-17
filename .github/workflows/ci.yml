@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  PUB_CACHE: ${{ github.workspace }}/.pub-cache
+
+jobs:
+  analyze:
+    name: Analyze (Dart)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+  test:
+    name: Test (Dart)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Run tests
+        # Native integration tests require a Wwise SDK and are therefore not
+        # run in CI. Only pure-Dart logic is covered here.
+        run: flutter test
+
+  hygiene:
+    name: Repository hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure no Wwise SDK content is committed
+        run: |
+          set -euo pipefail
+          echo "Scanning for Wwise SDK artifacts..."
+          # Wwise headers are namespaced under AK/ and are the clearest tell.
+          if git ls-files | grep -Ei '(^|/)AK/.*\.h$'; then
+            echo "::error::Wwise SDK headers appear to be committed. Remove them."
+            exit 1
+          fi
+          if git ls-files | grep -Ei '(AkSoundEngine|libAkSoundEngine|AkSoundEngineDLL)\.(lib|dll|a|so)$'; then
+            echo "::error::Wwise engine binaries appear to be committed. Remove them."
+            exit 1
+          fi
+          if git ls-files | grep -Ei '\.(bnk|wem|wproj)$'; then
+            echo "::error::Wwise runtime/authoring artifacts appear to be committed. Remove them."
+            exit 1
+          fi
+          echo "Clean: no Wwise SDK content found."

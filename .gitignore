@@ -1,0 +1,51 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+pubspec.lock
+
+# Flutter plugin build artifacts
+**/android/.gradle/
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/windows/flutter/generated_plugin_registrant.*
+**/windows/flutter/generated_plugins.cmake
+**/linux/flutter/generated_plugin_registrant.*
+**/linux/flutter/generated_plugins.cmake
+
+# Native build output
+src/build/
+*.o
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+*.exp
+*.pdb
+*.ilk
+
+# ffigen intermediate
+lib/src/ffi/*.generated.dart
+!lib/src/ffi/bindings.dart
+
+# Wwise SDK — NEVER commit SDK contents
+wwise_sdk/
+third_party/wwise/
+*.wproj
+*.bnk
+*.wem
+.cache/
+
+# Editors / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Secrets and machine-local config
+*.local.yaml
+env.local.*
