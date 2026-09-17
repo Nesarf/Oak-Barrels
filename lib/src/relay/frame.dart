@@ -1,7 +1,7 @@
 /// Wire framing for the relay protocol.
 ///
-/// This file implements the framing rules of `docs/RELAY_PROTOCOL.md` §3 and
-/// the message types of §3.1. Where this code and that document disagree, the
+/// This file implements the framing rules of `docs/RELAY_PROTOCOL.md` section 3 and
+/// the message types of section 3.1. Where this code and that document disagree, the
 /// document is normative and this code is wrong.
 ///
 /// Design notes that are easy to get wrong later:
@@ -10,7 +10,7 @@
 ///   alone. A frame carrying only a type has length 1.
 /// * Integers are little-endian.
 /// * A frame is length-prefixed rather than newline-delimited so that payloads
-///   may legitimately contain newlines — names are chosen by the host and are
+///   may legitimately contain newlines -- names are chosen by the host and are
 ///   not constrained.
 library;
 
@@ -25,11 +25,11 @@ const Set<int> supportedRevisions = {1};
 
 /// Budget for a single control frame.
 ///
-/// Bulk audio deliberately does not travel over this pipe (protocol §7), so a
+/// Bulk audio deliberately does not travel over this pipe (protocol section 7), so a
 /// frame this large is always a protocol error rather than a big payload.
 const int maxControlFrameBytes = 1024 * 1024;
 
-/// Message type byte. See protocol §3.1.
+/// Message type byte. See protocol section 3.1.
 enum MessageType {
   hello(0x01),
   helloAck(0x02),
@@ -108,7 +108,7 @@ class Frame {
 /// frames that are now complete, retaining any partial tail for next time.
 ///
 /// The buffer is a plain growable list rather than a `BytesBuilder` on purpose.
-/// `BytesBuilder`'s take/get semantics are easy to misread — in particular it is
+/// `BytesBuilder`'s take/get semantics are easy to misread -- in particular it is
 /// tempting to read the accumulated bytes and then append the leftover back,
 /// which silently duplicates the buffer. Control messages are small and
 /// infrequent, so clarity beats a micro-optimisation here.
@@ -134,7 +134,8 @@ class FrameDecoder {
       final length = ByteData.view(header.buffer).getUint32(0, Endian.little);
 
       if (length < 1) {
-        throw ProtocolViolation('frame length $length is below the minimum of 1');
+        throw ProtocolViolation(
+            'frame length $length is below the minimum of 1');
       }
       if (length > maxControlFrameBytes) {
         throw ProtocolViolation(
@@ -169,16 +170,19 @@ class FrameDecoder {
     return frames;
   }
 
-  static Map<String, Object?> _decodePayload(List<int> buffer, int start, int end) {
+  static Map<String, Object?> _decodePayload(
+      List<int> buffer, int start, int end) {
     final text = utf8.decode(buffer.sublist(start, end));
     final Object? decoded;
     try {
       decoded = jsonDecode(text);
     } on FormatException catch (error) {
-      throw ProtocolViolation('payload is not valid UTF-8 JSON: ${error.message}');
+      throw ProtocolViolation(
+          'payload is not valid UTF-8 JSON: ${error.message}');
     }
     if (decoded is! Map) {
-      throw ProtocolViolation('payload JSON must be an object, got ${decoded.runtimeType}');
+      throw ProtocolViolation(
+          'payload JSON must be an object, got ${decoded.runtimeType}');
     }
     return decoded.cast<String, Object?>();
   }
@@ -202,5 +206,6 @@ class FrameTooLarge implements Exception {
   final int limit;
 
   @override
-  String toString() => 'FrameTooLarge: $size bytes exceeds the $limit byte limit';
+  String toString() =>
+      'FrameTooLarge: $size bytes exceeds the $limit byte limit';
 }

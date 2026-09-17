@@ -55,10 +55,12 @@ void main() {
       expect(hello.type, MessageType.hello);
       expect(hello.payload['revisions'], contains(1));
 
-      transport.reply(const Frame(
-        MessageType.helloAck,
-        <String, Object?>{'revision': 1},
-      ),);
+      transport.reply(
+        const Frame(
+          MessageType.helloAck,
+          <String, Object?>{'revision': 1},
+        ),
+      );
 
       expect(await future, 1);
       expect(relay.revision, 1);
@@ -71,15 +73,19 @@ void main() {
 
       final future = relay.negotiate();
       await Future<void>.delayed(Duration.zero);
-      transport.reply(const Frame(MessageType.error, <String, Object?>{
-        'reason': 2,
-        'detail': 'protocol revisions do not overlap',
-      }),);
+      transport.reply(
+        const Frame(MessageType.error, <String, Object?>{
+          'reason': 2,
+          'detail': 'protocol revisions do not overlap',
+        }),
+      );
 
       await expectLater(
         future,
-        throwsA(isA<RelayException>()
-            .having((e) => e.reason, 'reason', ReasonCode.noCommonRevision),),
+        throwsA(
+          isA<RelayException>()
+              .having((e) => e.reason, 'reason', ReasonCode.noCommonRevision),
+        ),
       );
       await relay.dispose();
     });
@@ -104,18 +110,23 @@ void main() {
 
       final future = relay.capabilities();
       await Future<void>.delayed(Duration.zero);
-      transport.reply(const Frame(MessageType.capsReply, <String, Object?>{
-        'classes': <String>['engine.action.named', 'engine.param.continuous'],
-        'limits': <String, Object?>{'max_targets': 64, 'noise': 'ignored'},
-        'bulk': false,
-      }),);
+      transport.reply(
+        const Frame(MessageType.capsReply, <String, Object?>{
+          'classes': <String>['engine.action.named', 'engine.param.continuous'],
+          'limits': <String, Object?>{'max_targets': 64, 'noise': 'ignored'},
+          'bulk': false,
+        }),
+      );
 
       final caps = await future;
       expect(caps.supports('engine.action.named'), isTrue);
       expect(caps.supports('engine.bulk.pcm'), isFalse);
       expect(caps.limits['max_targets'], 64);
-      expect(caps.limits.containsKey('noise'), isFalse,
-          reason: 'non-numeric limits must be dropped, not coerced',);
+      expect(
+        caps.limits.containsKey('noise'),
+        isFalse,
+        reason: 'non-numeric limits must be dropped, not coerced',
+      );
       expect(caps.bulk, isFalse);
       await relay.dispose();
     });
@@ -144,7 +155,8 @@ void main() {
       expect(transport.sentFrames.single.payload['kind'], 'emitter');
       expect(transport.sentFrames.single.payload['name'], 'ui');
 
-      transport.reply(const Frame(MessageType.openAck, <String, Object?>{'handle': 7}));
+      transport.reply(
+          const Frame(MessageType.openAck, <String, Object?>{'handle': 7}));
       expect(await future, 7);
       await relay.dispose();
     });
@@ -155,7 +167,8 @@ void main() {
 
       final future = relay.open('emitter');
       await Future<void>.delayed(Duration.zero);
-      transport.reply(const Frame(MessageType.openAck, <String, Object?>{'handle': 0}));
+      transport.reply(
+          const Frame(MessageType.openAck, <String, Object?>{'handle': 0}));
 
       await expectLater(future, throwsA(isA<RelayException>()));
       await relay.dispose();
@@ -165,14 +178,16 @@ void main() {
       final transport = FakeTransport();
       final relay = await connected(transport);
 
-      final future = relay.post(7, 'ice_drop', args: <String, Object?>{'gain': 0.5});
+      final future =
+          relay.post(7, 'ice_drop', args: <String, Object?>{'gain': 0.5});
       await Future<void>.delayed(Duration.zero);
       final sent = transport.sentFrames.single;
       expect(sent.type, MessageType.post);
       expect(sent.payload['handle'], 7);
       expect(sent.payload['action'], 'ice_drop');
 
-      transport.reply(const Frame(MessageType.status, <String, Object?>{'reason': 0}));
+      transport.reply(
+          const Frame(MessageType.status, <String, Object?>{'reason': 0}));
       await future;
       await relay.dispose();
     });
@@ -188,7 +203,8 @@ void main() {
       expect(sent.payload['param'], 'intensity');
       expect(sent.payload['value'], 0.82);
 
-      transport.reply(const Frame(MessageType.status, <String, Object?>{'reason': 0}));
+      transport.reply(
+          const Frame(MessageType.status, <String, Object?>{'reason': 0}));
       await future;
       await relay.dispose();
     });
@@ -199,11 +215,13 @@ void main() {
 
       final future = relay.post(1, 'anything');
       await Future<void>.delayed(Duration.zero);
-      transport.reply(const Frame(MessageType.error, <String, Object?>{'reason': 4242}));
+      transport.reply(
+          const Frame(MessageType.error, <String, Object?>{'reason': 4242}));
 
       await expectLater(
         future,
-        throwsA(isA<RelayException>().having((e) => e.reason, 'reason', isNull)),
+        throwsA(
+            isA<RelayException>().having((e) => e.reason, 'reason', isNull)),
       );
       await relay.dispose();
     });
@@ -221,7 +239,8 @@ void main() {
       await relay.dispose();
     });
 
-    test('a malformed stream surfaces as the protocol violation it is', () async {
+    test('a malformed stream surfaces as the protocol violation it is',
+        () async {
       final transport = FakeTransport();
       final relay = await connected(transport);
 

@@ -1,8 +1,8 @@
 /// Stdio transport: the host spawns the relay and speaks over its streams.
 ///
-/// This is the transport to reach for first (protocol §2). It needs no socket,
+/// This is the transport to reach for first (protocol section 2). It needs no socket,
 /// no filesystem artifact, no permissions and no cleanup path, so it works
-/// identically on every platform the relay supports — which makes it the right
+/// identically on every platform the relay supports -- which makes it the right
 /// thing to validate the protocol against.
 ///
 /// The relay writes nothing but protocol frames to stdout. Anything it wants to

@@ -1,8 +1,8 @@
 /// The host-side relay client.
 ///
 /// The protocol is paired: `HELLO`/`HELLO_ACK`, `CAPS_REQUEST`/`CAPS_REPLY`,
-/// `OPEN`/`OPEN_ACK`, and so on (protocol §3.1). This client therefore keeps
-/// one outstanding request at a time. That is a deliberate simplification —
+/// `OPEN`/`OPEN_ACK`, and so on (protocol section 3.1). This client therefore keeps
+/// one outstanding request at a time. That is a deliberate simplification --
 /// pipelining would need request identifiers, which revision 1 does not define.
 ///
 /// Note what is *not* here: no version, no path, no vendor name, and no
@@ -25,7 +25,6 @@ const Duration defaultRequestTimeout = Duration(seconds: 30);
 
 /// The outcome of a capability query.
 class Capabilities {
-
   factory Capabilities.fromPayload(Map<String, Object?> payload) {
     final rawClasses = payload['classes'];
     final rawLimits = payload['limits'];
@@ -84,7 +83,8 @@ class Relay {
   }
 
   /// Wraps an already-connected [transport].
-  static Future<Relay> attach(RelayTransport transport) async => Relay._(transport);
+  static Future<Relay> attach(RelayTransport transport) async =>
+      Relay._(transport);
 
   /// Spawns a relay process and wraps its standard streams.
   static Future<Relay> spawn(
@@ -183,7 +183,7 @@ class Relay {
   ///
   /// Returns the selected revision. Throws [RelayException] with
   /// [ReasonCode.noCommonRevision] when our revision set and the station's do
-  /// not overlap — the station decides, we do not guess.
+  /// not overlap -- the station decides, we do not guess.
   Future<int> negotiate({
     Set<int> revisions = supportedRevisions,
     Duration timeout = defaultRequestTimeout,
@@ -217,7 +217,8 @@ class Relay {
       timeout,
     );
     if (response.type != MessageType.capsReply) {
-      throw RelayException(null, 'expected CAPS_REPLY, got ${response.type.name}');
+      throw RelayException(
+          null, 'expected CAPS_REPLY, got ${response.type.name}');
     }
     return Capabilities.fromPayload(response.payload);
   }
@@ -239,7 +240,8 @@ class Relay {
       timeout,
     );
     if (response.type != MessageType.openAck) {
-      throw RelayException(null, 'expected OPEN_ACK, got ${response.type.name}');
+      throw RelayException(
+          null, 'expected OPEN_ACK, got ${response.type.name}');
     }
     final handle = response.payload['handle'];
     if (handle is! int || handle == 0) {
@@ -269,7 +271,7 @@ class Relay {
     );
   }
 
-  /// Sets a continuous parameter — the hook for real-time control.
+  /// Sets a continuous parameter -- the hook for real-time control.
   Future<void> set(
     int handle,
     String parameter,
@@ -286,7 +288,7 @@ class Relay {
     );
   }
 
-  /// Closes a target. Idempotent per protocol §5: closing an unknown handle is
+  /// Closes a target. Idempotent per protocol section 5: closing an unknown handle is
   /// not an error.
   Future<void> close(
     int handle, {
@@ -319,7 +321,6 @@ class Relay {
 
 /// A failure reported by the station, carrying a protocol reason code.
 class RelayException implements Exception {
-
   factory RelayException.fromPayload(Map<String, Object?> payload) {
     final code = payload['reason'];
     final detail = payload['detail'];
@@ -333,14 +334,16 @@ class RelayException implements Exception {
   /// The reason code, or null when the station sent something malformed.
   final ReasonCode? reason;
 
-  /// A short, non-identifying description. Per protocol §6 this must not name a
+  /// A short, non-identifying description. Per protocol section 6 this must not name a
   /// vendor, a version or a path.
   final String? detail;
 
   @override
   String toString() {
     final code = reason?.name ?? 'unknown';
-    return detail == null ? 'RelayException($code)' : 'RelayException($code): $detail';
+    return detail == null
+        ? 'RelayException($code)'
+        : 'RelayException($code): $detail';
   }
 }
 
@@ -351,7 +354,8 @@ class RelayTimeout implements Exception {
   final Duration timeout;
 
   @override
-  String toString() => 'RelayTimeout: no reply within ${timeout.inMilliseconds} ms';
+  String toString() =>
+      'RelayTimeout: no reply within ${timeout.inMilliseconds} ms';
 }
 
 /// Raised when the channel closed unexpectedly.

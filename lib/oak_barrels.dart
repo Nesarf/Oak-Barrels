@@ -1,4 +1,4 @@
-/// Oak Barrels — a neutral relay client.
+/// Oak Barrels -- a neutral relay client.
 ///
 /// The relay station sits between a host and whatever audio engine is installed
 /// on the machine. It belongs to neither side: no vendor headers, no vendor
@@ -8,7 +8,7 @@
 /// See `docs/RELAY_PROTOCOL.md` for the normative protocol specification.
 ///
 /// This library is transport and protocol only. It does not depend on any UI
-/// framework — hosts are often UI applications, but that is a usage pattern,
+/// framework -- hosts are often UI applications, but that is a usage pattern,
 /// not a requirement.
 library;
 

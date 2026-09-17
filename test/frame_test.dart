@@ -10,14 +10,16 @@ void main() {
       final bytes = const Frame(MessageType.bye).encode();
       expect(bytes.length, 5);
 
-      final length = ByteData.sublistView(bytes, 0, 4).getUint32(0, Endian.little);
+      final length =
+          ByteData.sublistView(bytes, 0, 4).getUint32(0, Endian.little);
       expect(length, 1, reason: 'a bodyless frame is exactly the type byte');
       expect(bytes[4], MessageType.bye.code);
     });
 
     test('length prefix is little-endian', () {
       // 0x0102 encodes as 02 01 00 00 when little-endian.
-      final bytes = const Frame(MessageType.bye, <String, Object?>{'x': 'y'}).encode();
+      final bytes =
+          const Frame(MessageType.bye, <String, Object?>{'x': 'y'}).encode();
       expect(bytes[0], greaterThan(1));
       expect(bytes[1], 0);
       expect(bytes[2], 0);
@@ -25,9 +27,13 @@ void main() {
     });
 
     test('round-trips a payload through the decoder', () {
-      const payload = <String, Object?>{'revisions': <int>[1], 'features': <String>['a']};
+      const payload = <String, Object?>{
+        'revisions': <int>[1],
+        'features': <String>['a']
+      };
       final decoder = FrameDecoder();
-      final frames = decoder.add(const Frame(MessageType.hello, payload).encode());
+      final frames =
+          decoder.add(const Frame(MessageType.hello, payload).encode());
 
       expect(frames, hasLength(1));
       expect(frames.single.type, MessageType.hello);
@@ -45,10 +51,12 @@ void main() {
 
   group('FrameDecoder', () {
     test('reassembles a frame split across arbitrary chunk boundaries', () {
-      final encoded = const Frame(MessageType.openAck, <String, Object?>{'handle': 42}).encode();
+      final encoded =
+          const Frame(MessageType.openAck, <String, Object?>{'handle': 42})
+              .encode();
       final decoder = FrameDecoder();
 
-      // Feed one byte at a time — the worst case a transport can produce.
+      // Feed one byte at a time -- the worst case a transport can produce.
       final collected = <Frame>[];
       for (final byte in encoded) {
         collected.addAll(decoder.add(<int>[byte]));
@@ -73,7 +81,9 @@ void main() {
     });
 
     test('retains an incomplete tail across calls', () {
-      final encoded = const Frame(MessageType.status, <String, Object?>{'reason': 0}).encode();
+      final encoded =
+          const Frame(MessageType.status, <String, Object?>{'reason': 0})
+              .encode();
       final decoder = FrameDecoder();
 
       final first = decoder.add(encoded.sublist(0, 3));
@@ -92,13 +102,16 @@ void main() {
 
     test('rejects a frame larger than the control budget', () {
       final oversized = Uint8List(8);
-      ByteData.view(oversized.buffer).setUint32(0, maxControlFrameBytes + 1, Endian.little);
-      expect(() => FrameDecoder().add(oversized), throwsA(isA<ProtocolViolation>()));
+      ByteData.view(oversized.buffer)
+          .setUint32(0, maxControlFrameBytes + 1, Endian.little);
+      expect(() => FrameDecoder().add(oversized),
+          throwsA(isA<ProtocolViolation>()));
     });
 
     test('rejects an unknown message type', () {
       final unknown = Uint8List.fromList(<int>[1, 0, 0, 0, 0x99]);
-      expect(() => FrameDecoder().add(unknown), throwsA(isA<ProtocolViolation>()));
+      expect(
+          () => FrameDecoder().add(unknown), throwsA(isA<ProtocolViolation>()));
     });
 
     test('rejects a payload that is not a JSON object', () {
@@ -108,7 +121,8 @@ void main() {
       frame[4] = MessageType.status.code;
       frame.setRange(5, frame.length, body);
 
-      expect(() => FrameDecoder().add(frame), throwsA(isA<ProtocolViolation>()));
+      expect(
+          () => FrameDecoder().add(frame), throwsA(isA<ProtocolViolation>()));
     });
   });
 

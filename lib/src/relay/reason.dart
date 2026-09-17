@@ -1,8 +1,8 @@
-/// Failure reason codes, per `docs/RELAY_PROTOCOL.md` §6.
+/// Failure reason codes, per `docs/RELAY_PROTOCOL.md` section 6.
 ///
 /// A reason code is the *only* thing a relay is allowed to say about a failure.
 /// It must never be accompanied by text naming a vendor, a version, or a
-/// filesystem path — that constraint is what keeps diagnostics from turning
+/// filesystem path -- that constraint is what keeps diagnostics from turning
 /// into a fingerprint of the user's machine.
 ///
 /// The [summary] attached to each code is therefore deliberately generic: it

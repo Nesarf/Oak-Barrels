@@ -1,6 +1,6 @@
 /// Transport abstraction for the relay protocol.
 ///
-/// The protocol specifies three transports (protocol §2): a Unix domain
+/// The protocol specifies three transports (protocol section 2): a Unix domain
 /// socket, a Windows named pipe, and stdio. They differ only in how bytes move;
 /// everything above this interface is identical.
 ///
@@ -30,7 +30,7 @@ abstract interface class RelayTransport {
 
   /// Releases the channel.
   ///
-  /// Idempotent. Does not throw when the far end has already gone away — a
+  /// Idempotent. Does not throw when the far end has already gone away -- a
   /// relay that has exited is a normal end state, not an error.
   Future<void> close();
 }

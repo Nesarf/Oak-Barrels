@@ -18,7 +18,12 @@ linter:
     - prefer_const_constructors
     - prefer_final_locals
     - prefer_single_quotes
-    - require_trailing_commas
     - sort_constructors_first
     - unawaited_futures
     - use_super_parameters
+
+    # Note the absence of `require_trailing_commas`. The formatter decides comma
+    # placement (it reshapes argument lists to fit the line width), so that lint
+    # disagrees with `dart format` on exactly the files CI requires to be
+    # formatted. Two gates that cannot both be satisfied are worse than either
+    # one alone, so the formatter is the authority on commas.
