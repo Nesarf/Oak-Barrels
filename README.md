@@ -133,7 +133,7 @@ over-claiming that protocol section 10 forbids.
 | Discovery from container format, host-nominated | [x] |
 | Probe profiles and dynamic binding | [x] |
 | Reference host example | [x] |
-| Named pipe client for the Dart host | [ ] needs a platform call Dart does not expose |
+| Named pipe client for the Dart host | [x] via dart:ffi, with no package added |
 | Bulk audio channel (protocol section 7) | [ ] a future revision |
 
 ## Telling a station what to do

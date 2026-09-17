@@ -107,6 +107,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   end to end: scan, recognise a container format, load, resolve, bind, call, and
   observe that the call landed. Nothing links the fixture, so the load path is
   genuinely exercised rather than bypassed by the linker.
+- **A named pipe transport for the Dart host**, reached through `dart:ffi` with
+  no package added: the allocation and UTF-16 conversion that a helper package
+  would supply are short against `LocalAlloc` and the fact that a Dart string is
+  already UTF-16. Reading runs on its own isolate and asks whether data is
+  waiting rather than sitting in a blocking read, because a worker blocked
+  inside a system call cannot be killed and a read issued before the far end has
+  finished connecting fails instead of waiting.
 
 ### Removed
 
@@ -122,13 +129,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   description of its own. Until a profile says what to look for, no engine can
   be found -- deliberately, and that is axiom A2 talking rather than an
   unfinished stage.
-- TODO(client): a named pipe transport for the Dart host. Connecting to one
-  needs a platform call Dart does not expose, so a Windows host either spawns
-  the station or brings its own client. The station already serves pipes, and
-  the protocol is host-agnostic, so this is a gap in one client rather than in
-  the relay.
-- TODO(protocol): the bulk audio channel of section 7, which must stay on a
-  separate transport so that a slow audio consumer cannot stall control.
+- TODO(protocol): the bulk audio channel of section 7, and nothing else. See
+  above for why it is a decision rather than an omission.
 
 ## [0.1.0] - 2026-09-18
 

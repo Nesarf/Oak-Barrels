@@ -28,6 +28,25 @@ String? findStation() {
   return null;
 }
 
+/// Connects to a pipe the station has been asked to create, retrying while the
+/// process starts.
+///
+/// The station creates the pipe before waiting on it, but it is still a process
+/// being launched, so the first attempt can arrive too early. Retrying beats
+/// guessing at a delay, which is either flaky or slow and usually both.
+Future<NamedPipeTransport> _connectPipe(String name) async {
+  final deadline = DateTime.now().add(const Duration(seconds: 15));
+
+  while (true) {
+    try {
+      return await NamedPipeTransport.connect(name);
+    } on SocketException {
+      if (DateTime.now().isAfter(deadline)) rethrow;
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+  }
+}
+
 void main() {
   final station = findStation();
   final skipReason = station == null
@@ -163,9 +182,8 @@ void main() {
     });
 
     test('serves a unix socket when the host names one', () async {
-      // The platform's equivalent on Windows is a named pipe, and connecting to
-      // one needs a platform call Dart does not expose directly. Hosts there
-      // spawn the station instead, which works everywhere.
+      // The platform's equivalent on Windows is a named pipe, which the test
+      // below covers. Neither transport exists on the other platform.
       if (Platform.isWindows) return;
 
       final directory = Directory.systemTemp.createTempSync('oak-e2e-socket-');
@@ -193,6 +211,26 @@ void main() {
       final relay = await Relay.attach(
         await UnixSocketTransport.connect(socketPath),
       );
+
+      expect(await relay.negotiate(), 1);
+      expect((await relay.capabilities()).classes, isEmpty);
+      await relay.shutdown();
+    });
+
+    test('serves a named pipe when the host names one', () async {
+      if (!Platform.isWindows) return;
+
+      // A fresh name per run. Pipe names are machine-wide, so a stale one from
+      // an earlier run would be connected to instead of this station's.
+      final pipeName = 'oak-e2e-pipe-${DateTime.now().microsecondsSinceEpoch}';
+
+      final process = await Process.start(
+        station!,
+        <String>['--pipe', pipeName],
+      );
+      addTearDown(process.kill);
+
+      final relay = await Relay.attach(await _connectPipe(pipeName));
 
       expect(await relay.negotiate(), 1);
       expect((await relay.capabilities()).classes, isEmpty);
