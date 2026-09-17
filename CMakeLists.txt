@@ -24,6 +24,14 @@ if(MSVC)
     add_compile_options(/utf-8)
 endif()
 
+# The platform header for this family defines min and max as macros, which
+# breaks std::min and std::max in every file that includes it. Defining these
+# once here is better than rediscovering it in each file that needs a platform
+# header, and better than writing the workaround three different ways.
+if(WIN32)
+    add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+endif()
+
 # ---------------------------------------------------------------------------
 # The relay station.
 #
@@ -33,16 +41,26 @@ endif()
 # configure-time dependency on somebody's SDK would defeat the whole point.
 # ---------------------------------------------------------------------------
 add_library(oak_barrels_core STATIC
+    src/relay/binding/dynamic_library.cpp
     src/relay/discovery/module_format.cpp
     src/relay/discovery/scanner.cpp
+    src/relay/probe/probing_backend.cpp
+    src/relay/probe/profile.cpp
+    src/relay/probe/prober.cpp
     src/relay/protocol/frame.cpp
     src/relay/protocol/json.cpp
+    src/relay/transport/named_pipe_transport.cpp
     src/relay/transport/stdio_transport.cpp
+    src/relay/transport/unix_socket_transport.cpp
     src/relay/session.cpp
 )
 
 target_include_directories(oak_barrels_core PUBLIC src)
 target_compile_features(oak_barrels_core PUBLIC cxx_std_17)
+
+# Resolving a symbol at run time is what this project does instead of linking,
+# so the platform's own loader is the one dependency it genuinely has.
+target_link_libraries(oak_barrels_core PUBLIC ${CMAKE_DL_LIBS})
 
 add_executable(oak-barrels src/relay/main.cpp)
 target_link_libraries(oak-barrels PRIVATE oak_barrels_core)

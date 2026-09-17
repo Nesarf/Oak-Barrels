@@ -14,18 +14,15 @@
 #include <cstdint>
 #include <vector>
 
+#include "relay/transport/transport.hpp"
+
 namespace oak::relay::transport {
 
 /// Blocking byte transport over the process's standard streams.
-///
-/// Reads return as soon as *any* bytes are available rather than waiting to
-/// fill the caller's buffer -- a frame stream is not a file, and a read that
-/// waits for a full buffer would deadlock against a peer that is waiting for
-/// a reply.
-class StdioTransport {
+class StdioTransport final : public Transport {
  public:
   StdioTransport();
-  ~StdioTransport();
+  ~StdioTransport() override;
 
   StdioTransport(const StdioTransport&) = delete;
   StdioTransport& operator=(const StdioTransport&) = delete;
@@ -34,13 +31,10 @@ class StdioTransport {
   ///
   /// Returns the number of bytes read (which may be 0 at end of stream), or a
   /// negative value on error. Interrupted reads are retried internally.
-  std::ptrdiff_t read(std::uint8_t* buffer, std::size_t maxBytes);
+  std::ptrdiff_t read(std::uint8_t* buffer, std::size_t maxBytes) override;
 
   /// Writes every byte of `bytes`. Returns false on error or short write.
-  bool write(const std::vector<std::uint8_t>& bytes);
-
-  /// Largest single read or write this transport will issue.
-  static constexpr std::size_t kMaxIoChunk = 64u * 1024u;
+  bool write(const std::vector<std::uint8_t>& bytes) override;
 };
 
 }  // namespace oak::relay::transport

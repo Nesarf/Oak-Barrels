@@ -17,13 +17,7 @@ namespace {
 constexpr int kStdinFd = 0;
 constexpr int kStdoutFd = 1;
 
-bool isInterrupted(int result) {
-#ifdef _WIN32
-  return result < 0 && errno == EINTR;
-#else
-  return result < 0 && errno == EINTR;
-#endif
-}
+bool isInterrupted(int result) { return result < 0 && errno == EINTR; }
 
 }  // namespace
 
