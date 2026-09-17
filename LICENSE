@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 Hollow Court contributors
+Copyright (c) 2026 Oak Barrels contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,17 +22,20 @@ SOFTWARE.
 
 ---
 
-## Note on Audiokinetic Wwise
+## Non-affiliation
 
-This project is an **independent, unofficial** integration layer. It is not
-affiliated with, endorsed by, or sponsored by Audiokinetic Inc.
+Oak Barrels is an independent work. It is not affiliated with, endorsed by,
+sponsored by, or derived from the work of any audio middleware vendor, audio
+engine vendor, or application framework vendor.
 
-Audiokinetic Wwise is commercial software. **No Wwise SDK files — headers,
-static libraries, dynamic libraries, or tools — are distributed in this
-repository.** You must obtain your own Wwise installation and license from
-<https://www.audiokinetic.com/> and comply with its terms, including the
-conditions under which Wwise runtime libraries may be redistributed with your
-application.
+Any third-party runtime, SDK, library or tool that a user chooses to connect
+through this relay remains governed entirely by that party's own licence. No
+such component is distributed with, vendored into, or required at build time by
+this project.
 
-The C shim and Dart code in this repository are original work released under
-the MIT license above.
+Users are solely responsible for determining whether their use of any
+third-party component — including the redistribution of that component's
+runtime libraries inside a shipped application — is permitted under the terms
+they agreed to.
+
+This document is not legal advice.

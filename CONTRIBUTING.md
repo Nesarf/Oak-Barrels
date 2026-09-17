@@ -1,4 +1,4 @@
-# Contributing to flutter_wwise
+# Contributing to oak_barrels
 
 Thanks for considering a contribution. This project exists as a **neutral
 relay** — it belongs to neither side of the pipe. Keeping it that way is the

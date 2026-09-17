@@ -1,4 +1,4 @@
-# Flutter / Dart
+# Dart / pub
 .dart_tool/
 .packages
 .pub-cache/
@@ -6,38 +6,33 @@
 build/
 pubspec.lock
 
-# Flutter plugin build artifacts
-**/android/.gradle/
-**/android/local.properties
-**/android/**/GeneratedPluginRegistrant.java
-**/windows/flutter/generated_plugin_registrant.*
-**/windows/flutter/generated_plugins.cmake
-**/linux/flutter/generated_plugin_registrant.*
-**/linux/flutter/generated_plugins.cmake
-
 # Native build output
 src/build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
 *.o
+*.obj
 *.a
 *.lib
 *.so
-*.dll
 *.dylib
+*.dll
 *.exp
 *.pdb
 *.ilk
 
-# ffigen intermediate
-lib/src/ffi/*.generated.dart
-!lib/src/ffi/bindings.dart
-
-# Wwise SDK — NEVER commit SDK contents
-wwise_sdk/
-third_party/wwise/
+# Third-party SDK content must never be committed.
+# The relay links nothing at build time, so nothing here should ever be needed.
+third_party/
+vendor/
+*_sdk/
+sdk/
 *.wproj
+
+# Engine runtime artefacts must not be committed either.
 *.bnk
 *.wem
-.cache/
 
 # Editors / OS
 .idea/
@@ -46,6 +41,8 @@ third_party/wwise/
 .DS_Store
 Thumbs.db
 
-# Secrets and machine-local config
+# Machine-local configuration. If a setting cannot be committed safely it
+# should be supplied at run time, not checked in.
 *.local.yaml
+*.local.yaml.*
 env.local.*

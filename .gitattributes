@@ -1,6 +1,5 @@
 # Normalize line endings across platforms.
-# Text files are stored with LF in the repository; Git checks them out with the
-# platform-native ending unless a rule below says otherwise.
+# Stored with LF; checked out per the rules below.
 * text=auto eol=lf
 
 # Explicitly text
@@ -9,14 +8,14 @@
 *.yml     text
 *.md      text
 *.h       text
+*.hpp     text
 *.c       text
 *.cc      text
 *.cpp     text
 *.cmake   text
 CMakeLists.txt text
 *.json    text
-*.gradle  text
-*.properties text
+*.toml    text
 
 # Never touch these
 *.png     binary
@@ -28,7 +27,7 @@ CMakeLists.txt text
 *.ttf     binary
 *.otf     binary
 
-# Native artifacts (should not be committed anyway — see .gitignore)
+# Native artefacts (see .gitignore — these should not be committed at all)
 *.dll     binary
 *.so      binary
 *.dylib   binary
@@ -36,17 +35,14 @@ CMakeLists.txt text
 *.lib     binary
 *.pdb     binary
 
-# Audio (Wwise output must not be committed — see CI hygiene job)
+# Audio
 *.wav     binary
 *.ogg     binary
-*.bnk     binary
-*.wem     binary
 
-# Keep Windows scripts working on Windows
+# Keep host-native scripts working on their own platform
 *.bat     text eol=crlf
 *.cmd     text eol=crlf
 *.ps1     text eol=crlf
 
-# Linguist: keep the repository's language stats honest
-src/shim/* linguist-language=C
-lib/src/ffi/*.generated.dart linguist-generated=true
+# Linguist hints
+src/relay/** linguist-language=C++

@@ -1,21 +1,21 @@
-name: flutter_wwise
+name: oak_barrels
 description: >-
   A neutral relay client. Speaks a local pipe protocol to a relay station that
   bridges to whatever audio engine is installed on the machine. Belongs to no
   vendor, links nothing at build time, and carries no version constants.
 version: 0.1.0
-repository: https://github.com/Nesarf/flutter-wwise
-issue_tracker: https://github.com/Nesarf/flutter-wwise/issues
+repository: https://github.com/Nesarf/oak-barrels
+issue_tracker: https://github.com/Nesarf/oak-barrels/issues
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
 
-# No Flutter SDK dependency on purpose.
+# No UI framework dependency on purpose.
 #
 # The relay client is transport + protocol only. It does not touch a canvas, a
-# widget tree, or a platform channel. Hosts happen to be Flutter apps most of
-# the time; that is a usage pattern, not a requirement. Keeping this package
-# Flutter-free is also what lets it be tested with plain `dart test`.
+# widget tree, or a platform channel. Hosts are often UI applications; that is
+# a usage pattern, not a requirement. Staying framework-free is also what lets
+# this package be tested with a plain `dart test`.
 dependencies:
   # Intentionally empty. dart:io provides Socket, Process and stdio — all three
   # transports from the protocol specification.

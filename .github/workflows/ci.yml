@@ -81,15 +81,15 @@ jobs:
         run: |
           set -euo pipefail
           echo "== guarding against de-facto vendor coupling =="
-          # Allowed: README prose, LICENSE non-affiliation, CHANGELOG history,
-          # and the package name itself (an identifier, not a statement).
-          # Forbidden: source, protocol spec, build files.
+          # Permitted: README prose, the non-affiliation notice in LICENSE,
+          # CHANGELOG history, and this guard's own pattern list.
+          # Forbidden: source, protocol spec, build files, package manifest.
           files=$(git ls-files 'lib/**' 'src/**' 'docs/**' \
-                             '*.cmake' 'CMakeLists.txt' 2>/dev/null || true)
-          if [ -z "$files" ]; then echo "no source files yet"; exit 0; fi
-          if echo "$files" | xargs grep -niE '(audiokinetic|wwise|flutter)' 2>/dev/null; then
-            echo "::error::A vendor or framework name appears in code, protocol or build files."
-            echo "         Neutrality rule: names belong in prose, never in implementation."
+                             'pubspec.yaml' '*.cmake' 'CMakeLists.txt' 2>/dev/null || true)
+          if [ -z "$files" ]; then echo "no implementation files yet"; exit 0; fi
+          if echo "$files" | xargs grep -niE '(audiokinetic|wwise|flutter|unity|unreal)' 2>/dev/null; then
+            echo "::error::A vendor or framework name appears in an implementation surface."
+            echo "         Neutrality rule: names belong in prose, never in code."
             exit 1
           fi
           echo "ok: no vendor names in implementation surfaces"

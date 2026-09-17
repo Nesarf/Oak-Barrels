@@ -1,10 +1,10 @@
-# flutter_wwise
+# oak_barrels
 
 > A **neutral relay** between a host application (Flutter or anything else that
 > can open a local pipe) and whatever audio engine happens to be installed on
 > the machine.
 
-[![CI](https://github.com/Nesarf/flutter-wwise/actions/workflows/ci.yml/badge.svg)](https://github.com/Nesarf/flutter-wwise/actions/workflows/ci.yml)
+[![CI](https://github.com/Nesarf/oak-barrels/actions/workflows/ci.yml/badge.svg)](https://github.com/Nesarf/oak-barrels/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
