@@ -6,7 +6,7 @@
 > It declares **no applicable target**. It names none, and it is built for no
 > particular pairing -- see [What this is](#what-this-is).
 
-[![CI](https://github.com/Nesarf/oak-barrels/actions/workflows/ci.yml/badge.svg)](https://github.com/Nesarf/oak-barrels/actions/workflows/ci.yml)
+[![CI](https://github.com/Nesarf/Oak-Barrels/actions/workflows/ci.yml/badge.svg)](https://github.com/Nesarf/Oak-Barrels/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
