@@ -17,7 +17,7 @@ environment:
 # a usage pattern, not a requirement. Staying framework-free is also what lets
 # this package be tested with a plain `dart test`.
 dependencies:
-  # Intentionally empty. dart:io provides Socket, Process and stdio — all three
+  # Intentionally empty. dart:io provides Socket, Process and stdio -- all three
   # transports from the protocol specification.
 
 dev_dependencies:

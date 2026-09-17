@@ -1,8 +1,10 @@
 # oak_barrels
 
-> A **neutral relay** between a host application (Flutter or anything else that
-> can open a local pipe) and whatever audio engine happens to be installed on
-> the machine.
+> A **neutral relay** between a host application and whichever audio engine
+> happens to be installed on the machine.
+>
+> It declares **no applicable target**. It names none, and it is built for no
+> particular pairing -- see [What this is](#what-this-is).
 
 [![CI](https://github.com/Nesarf/oak-barrels/actions/workflows/ci.yml/badge.svg)](https://github.com/Nesarf/oak-barrels/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -11,32 +13,40 @@
 
 ## What this is
 
-A **relay station** — a process that sits between two sides and lets them talk
+A **relay station** -- a process that sits between two sides and lets them talk
 without either side knowing the other's internals.
 
 ```
-┌──────────────────┐        ┌────────────────────┐        ┌──────────────────┐
-│  Host app        │  pipe  │   Relay station    │ dlopen │  Audio engine    │
-│  (Flutter, …)    │◀──────▶│   (this project)   │◀──────▶│  (installed by   │
-│                  │        │                    │        │   the user)      │
-└──────────────────┘        └────────────────────┘        └──────────────────┘
++------------------+        +--------------------+        +------------------+
+|  Host app        |  pipe  |   Relay station    | dlopen |  Audio engine    |
+|  (any process    |<------>|   (this project)   |<------>|  (installed by   |
+|   with a pipe)   |        |                    |        |   the user)      |
++------------------+        +--------------------+        +------------------+
 ```
 
-Three properties define it:
+Four properties define it:
 
 **1. It belongs to neither side.**
-This is not "the Wwise plugin for Flutter", nor "the Flutter binding for
-Wwise". It installs alongside neither, depends on neither at build time, and
-is not distributed with either. It is a thing that exists on its own.
+It is not a plugin *for* anything, and not a binding *to* anything. It installs
+alongside neither side, depends on neither at build time, and is not
+distributed with either. It is a thing that exists on its own.
 
-**2. It links nothing at build time.**
+**2. It names no applicable target.**
+A relay that announced "this is for A and B" would become an integration for A
+and B the moment those names were written down -- and would be quietly wrong the
+moment either of them moved. So it does not write them down. The relay is
+defined by *what it does* -- carry control between a host and an engine --
+not by *who it is for*. That is a deliberate absence, not an unfinished
+sentence.
+
+**3. It links nothing at build time.**
 No audio-engine headers, no audio-engine libraries, no host-framework
 libraries. Everything on both sides is discovered and bound **at run time**.
 That is what makes version independence possible instead of aspirational.
 
-**3. It discovers, then adapts.**
-On startup it surveys what is actually present on the machine — engine
-installations, their versions, the host runtime's capabilities — and selects a
+**4. It discovers, then adapts.**
+On startup it surveys what is actually present on the machine -- candidate
+installations, their capabilities, the host runtime's shape -- and selects a
 compatible way to talk to them. Nothing is hardcoded, because anything
 hardcoded would be a version this project is silently married to.
 
@@ -44,6 +54,8 @@ hardcoded would be a version this project is silently married to.
 
 - Not affiliated with, endorsed by, or sponsored by any audio middleware vendor
   or any UI framework vendor.
+- Not declared compatible with, or intended for, any named product. It has no
+  target pairing to announce.
 - Not a redistribution channel. It ships no third-party binaries.
 - Not a fork, wrapper, or repackaging of anybody's SDK.
 - Not a build-time dependency of anything.
@@ -54,20 +66,20 @@ Because the station links nothing, it cannot call engine functions directly at
 compile time. It resolves them at run time instead:
 
 ```
-discover  →  probe  →  negotiate  →  bind  →  relay
-   │           │          │           │         │
-   │           │          │           │         └─ forward calls, return results
-   │           │          │           └─ resolve symbols dynamically
-   │           │          └─ agree on a protocol revision both sides can speak
-   │           └─ determine versions & capabilities without assuming any
-   └─ find candidate installations from neutral, generic signals
+discover  ->  probe  ->  negotiate  ->  bind  ->  relay
+   |           |          |           |         |
+   |           |          |           |         +- forward calls, return results
+   |           |          |           +- resolve symbols dynamically
+   |           |          +- agree on a protocol revision both sides can speak
+   |           +- determine capabilities without assuming any
+   +- find candidate installations from neutral, generic signals
 ```
 
 Each stage is specified in [`docs/RELAY_PROTOCOL.md`](docs/RELAY_PROTOCOL.md).
 
 ### Why not just link directly?
 
-Linking directly is simpler **once** — and then every release of either side
+Linking directly is simpler **once** -- and then every release of either side
 forces a rebuild of this project, and every user must match the exact versions
 the maintainer happened to have. A relay trades a little run-time complexity
 for the property that actually matters here: **it keeps working when the two
@@ -79,12 +91,15 @@ The station is built to avoid leaving identifying traces:
 
 - No vendor names, versions, paths or build fingerprints are compiled into the
   relay binary.
-- Version and path information discovered at run time stays in memory. It is
-  not written to disk, not logged by default, and not echoed back over the pipe
-  unless a diagnostic mode is explicitly enabled.
+- Facts discovered at run time stay in memory. They are not written to disk,
+  not logged by default, and not echoed back over the pipe unless a diagnostic
+  mode is explicitly enabled.
 - Diagnostic output, when enabled, is redacted by default: paths are reduced to
   opaque identifiers and version strings are reduced to compatibility classes
   rather than exact builds.
+- Identification is a **separate switch**, off by default and off independently
+  of diagnostics. A host that never sets it can run for years without the relay
+  ever telling it what it is talking to -- and that is the intended posture.
 - The repository contains no machine-specific configuration and no recorded
   environment details. See [CONTRIBUTING.md](CONTRIBUTING.md) for the rule that
   keeps it that way.
@@ -95,47 +110,60 @@ tool that fingerprints you. The relay should be able to say "compatible" or
 
 ## Status
 
-**Pre-alpha. Nothing functional yet.** The interface contract is being fixed
-before implementation, because a relay's protocol is the expensive thing to
-change later.
+**Pre-alpha. The protocol works and both ends of the pipe are implemented;
+there is nothing behind the pipe yet.**
+
+A station started today negotiates, reports its capabilities honestly, and
+refuses every `OPEN` with `NO_ENGINE` -- because discovery and binding, which
+are what would put an engine behind it, are not written yet. Refusing is the
+correct behaviour: advertising a compatibility class it cannot honour would be
+the over-claiming that protocol section 10 forbids.
 
 | Piece | State |
 | --- | --- |
-| Repository scaffolding, protocol docs, CI | ✅ |
-| Relay protocol specification | 🚧 in progress |
-| Discovery / probe / negotiation logic | ⏳ planned |
-| Dynamic binding layer | ⏳ planned |
-| Pipe transport (host side) | ⏳ planned |
-| Host-side Dart client | ⏳ planned |
-| Reference host example | ⏳ planned |
+| Repository scaffolding, protocol docs, CI | [x] |
+| Relay protocol specification | [x] revision 1, open to argument |
+| Frame codec, session state machine (native) | [x] |
+| stdio transport (both sides) | [x] |
+| Host-side client (Dart) | [x] |
+| Discovery / probe logic | [ ] planned |
+| Dynamic binding layer | [ ] planned |
+| Reference host example | [ ] planned |
 
-## Interface sketch
+## Interface
 
-Illustrative only — the wire protocol is the authority, not this snippet.
-Note that **no version number appears anywhere**, by design.
+The host-side client, as it actually is. Note that **no version number appears
+anywhere**, by design.
 
 ```dart
-// Host side: open a relay and talk to it without knowing what is behind it.
-final relay = await Relay.connect();
+import 'package:oak_barrels/oak_barrels.dart';
 
-final caps  = await relay.capabilities();   // compatibility classes, not versions
-final voice = await relay.open('emitter');
+// Spawn a station and talk to it without knowing what is behind it.
+final relay = await Relay.spawn('/path/to/oak-barrels');
 
-await relay.post('event.play',   target: voice, args: {'name': 'ice_drop'});
-await relay.set ('param.intensity', value: 0.82, target: voice);
-await relay.close(voice);
+final revision = await relay.negotiate();    // which revision both sides speak
+final caps     = await relay.capabilities(); // compatibility classes, not versions
+
+final emitter = await relay.open('emitter', name: 'ui');
+await relay.post(emitter, 'ice_drop', args: {'intensity': 0.8});
+await relay.set (emitter, 'intensity', 0.82);
+await relay.close(emitter);
 
 await relay.shutdown();
 ```
 
+The wire protocol is the authority, not this snippet -- see
+[`docs/RELAY_PROTOCOL.md`](docs/RELAY_PROTOCOL.md).
+
 ## Building
 
-The relay has **no third-party build dependencies**. It does not read a
-vendor SDK path, because it does not link a vendor SDK.
+The relay has **no third-party build dependencies**. It does not read a vendor
+SDK path, because it does not link a vendor SDK.
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
+ctest --test-dir build --output-on-failure
 ```
 
 The host-side client is pure Dart and needs no native toolchain:
@@ -155,8 +183,4 @@ dart test
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
-
----
-
-*中文版见 [README.zh-CN.md](README.zh-CN.md)。*
+MIT -- see [LICENSE](LICENSE).

@@ -62,7 +62,7 @@ jobs:
 
           # A path prefix must be preceded by start-of-line or whitespace, and
           # followed by a path separator plus a name character. Requiring the
-          # leading context is what keeps `https://…` from matching: there the
+          # leading context is what keeps `https://...` from matching: there the
           # letter before `:/` is part of a scheme, not a drive letter.
           win='(^|[[:space:]"'"'"'(])[A-Za-z]:[\\/][A-Za-z0-9_.]'
           unix='(^|[[:space:]"'"'"'(])/(home|Users|opt|usr/local)/[A-Za-z0-9_.]'
@@ -93,6 +93,29 @@ jobs:
             exit 1
           fi
           echo "ok: no vendor names in implementation surfaces"
+
+      - name: Tracked text stays ASCII
+        run: |
+          set -euo pipefail
+          echo "== guarding against encoding-dependent text =="
+          # ASCII only, for two reasons. A compiler that decodes source using
+          # the machine's code page can build the same file differently in
+          # different regions, which is a reproducibility bug rather than a
+          # warning to be silenced. And one text with one meaning stays
+          # reviewable by everyone who reads it.
+          #
+          # Unlike the version and path scans, CONTRIBUTING.md gets no exemption
+          # here: illustrating a forbidden form never requires a non-ASCII byte.
+          files=$(git ls-files '*.md' '*.dart' '*.c' '*.cc' '*.cpp' '*.h' '*.hpp' \
+                             '*.cmake' 'CMakeLists.txt' '*.yml' '*.yaml' || true)
+          if [ -z "$files" ]; then echo "no text files to scan"; exit 0; fi
+          if echo "$files" | xargs grep -nP '[^\x00-\x7F]'; then
+            echo "::error::Non-ASCII text found. Tracked text must be ASCII."
+            echo "         Use -- for a dash, -> for an arrow, 'section N' for a"
+            echo "         section reference, and + - | for box drawing."
+            exit 1
+          fi
+          echo "ok: tracked text is ASCII"
 
   protocol:
     name: Protocol document

@@ -10,20 +10,20 @@
 
 These four rules generate most of the decisions below.
 
-**A1 — The relay belongs to no vendor.**
+**A1 -- The relay belongs to no vendor.**
 It is not an integration for a named product. Product names may appear as
 *examples* in prose, never as protocol requirements, defaults, or branches.
 
-**A2 — Nothing is known at build time.**
+**A2 -- Nothing is known at build time.**
 Every engine, every version, every capability is discovered at run time. A
 compile-time constant that encodes a version is a bug.
 
-**A3 — Compatibility is a class, not a version.**
+**A3 -- Compatibility is a class, not a version.**
 The relay never needs to know that a user has build *X*. It needs to know
 which *family of calling conventions* the engine speaks. Exact versions are
 transient facts; compatibility classes are stable ones.
 
-**A4 — Discovered facts stay in memory.**
+**A4 -- Discovered facts stay in memory.**
 Paths, versions, and identifiers learned during discovery are not persisted,
 not logged by default, and not transmitted unless a capability explicitly
 requires it and the host has opted in.
@@ -33,28 +33,28 @@ requires it and the host has opted in.
 ## 1. Lifecycle
 
 ```
-        ┌───────────┐
-        │  discover │  find candidate installations from neutral signals
-        └─────┬─────┘
-              ▼
-        ┌───────────┐
-        │   probe   │  determine capabilities, without assuming versions
-        └─────┬─────┘
-              ▼
-        ┌───────────┐
-        │ negotiate │  agree on a protocol revision + feature set
-        └─────┬─────┘
-              ▼
-        ┌───────────┐
-        │   bind    │  resolve symbols dynamically
-        └─────┬─────┘
-              ▼
-        ┌───────────┐
-        │   relay   │  forward calls, return results
-        └───────────┘
+        +-----------+
+        |  discover |  find candidate installations from neutral signals
+        +-----+-----+
+              v
+        +-----------+
+        |   probe   |  determine capabilities, without assuming versions
+        +-----+-----+
+              v
+        +-----------+
+        | negotiate |  agree on a protocol revision + feature set
+        +-----+-----+
+              v
+        +-----------+
+        |   bind    |  resolve symbols dynamically
+        +-----+-----+
+              v
+        +-----------+
+        |   relay   |  forward calls, return results
+        +-----------+
 ```
 
-Failure at any stage is reportable as a **reason code** (see §6) without
+Failure at any stage is reportable as a **reason code** (see section 6) without
 revealing what was found.
 
 ---
@@ -95,26 +95,26 @@ Messages are length-prefixed frames. All integers are **little-endian**.
 - `len` counts the type byte **plus** payload. A frame with `len < 1` is a
   protocol error and the connection is closed.
 - Maximum frame size is 1 MiB for control messages. Bulk audio does not travel
-  over this protocol (see §7).
-- Payload encoding is declared during negotiation (§4.2). The default is
+  over this protocol (see section 7).
+- Payload encoding is declared during negotiation (section 4.2). The default is
   UTF-8 JSON; implementations may negotiate a denser encoding.
 
 ### 3.1 Message types
 
 | Value | Name | Direction | Purpose |
 | --- | --- | --- | --- |
-| `0x01` | `HELLO` | host → relay | Open a session, declare protocol revisions supported |
-| `0x02` | `HELLO_ACK` | relay → host | Accept a revision, declare relay revision |
-| `0x10` | `CAPS_REQUEST` | host → relay | Ask what the relay can offer |
-| `0x11` | `CAPS_REPLY` | relay → host | Capability classes available |
-| `0x20` | `OPEN` | host → relay | Open a target (an emitter/voice/channel) |
-| `0x21` | `OPEN_ACK` | relay → host | Target handle |
-| `0x30` | `POST` | host → relay | Fire a named action at a target |
-| `0x31` | `SET` | host → relay | Set a named continuous parameter |
-| `0x40` | `CLOSE` | host → relay | Close a target |
-| `0x50` | `STATUS` | relay → host | Asynchronous state / reason codes |
-| `0x60` | `DIAG_REQUEST` | host → relay | Ask for diagnostics (opt-in, see §8) |
-| `0x61` | `DIAG_REPLY` | relay → host | Redacted diagnostics |
+| `0x01` | `HELLO` | host -> relay | Open a session, declare protocol revisions supported |
+| `0x02` | `HELLO_ACK` | relay -> host | Accept a revision, declare relay revision |
+| `0x10` | `CAPS_REQUEST` | host -> relay | Ask what the relay can offer |
+| `0x11` | `CAPS_REPLY` | relay -> host | Capability classes available |
+| `0x20` | `OPEN` | host -> relay | Open a target (an emitter/voice/channel) |
+| `0x21` | `OPEN_ACK` | relay -> host | Target handle |
+| `0x30` | `POST` | host -> relay | Fire a named action at a target |
+| `0x31` | `SET` | host -> relay | Set a named continuous parameter |
+| `0x40` | `CLOSE` | host -> relay | Close a target |
+| `0x50` | `STATUS` | relay -> host | Asynchronous state / reason codes |
+| `0x60` | `DIAG_REQUEST` | host -> relay | Ask for diagnostics (opt-in, see section 8) |
+| `0x61` | `DIAG_REPLY` | relay -> host | Redacted diagnostics |
 | `0x70` | `BYE` | both | Terminate cleanly |
 | `0x7F` | `ERROR` | both | Protocol or operation failure, with a reason code |
 
@@ -195,7 +195,7 @@ a catalogue of valid names, because that would be a version-specific fact.
 ```
 
 `value` is a double in `[0, 1]` unless a negotiated feature says otherwise.
-This is the hook for real-time control — sensor input, user gesture, anything
+This is the hook for real-time control -- sensor input, user gesture, anything
 continuous.
 
 ### `CLOSE`
@@ -214,7 +214,7 @@ Failures are reported as a code plus a short, **non-identifying** phrase.
 
 | Code | Name | Meaning |
 | --- | --- | --- |
-| `0` | `OK` | — |
+| `0` | `OK` | -- |
 | `1` | `NO_ENGINE` | No candidate installation found |
 | `2` | `NO_COMMON_REVISION` | Protocol revisions do not overlap |
 | `3` | `INCOMPATIBLE_ENGINE` | An installation exists but no known class fits |
@@ -236,7 +236,7 @@ version, or a filesystem path.
 **Audio does not cross this pipe by default.**
 
 The relay's job is *control*. Where the audio goes is the backing engine's
-business — it drives the system audio device directly, as it would for any
+business -- it drives the system audio device directly, as it would for any
 other host.
 
 A future revision may negotiate a **bulk channel** for hosts that need to
@@ -267,8 +267,8 @@ When enabled, output is **redacted by default**:
 
 Two independent switches govern detail:
 
-- `diagnose` — allow diagnostics at all.
-- `identify` — allow vendor and product names to appear. Off by default.
+- `diagnose` -- allow diagnostics at all.
+- `identify` -- allow vendor and product names to appear. Off by default.
 
 A host that never sets `identify` can run for years without the relay ever
 telling it what it is talking to, and that is the intended posture.
@@ -285,8 +285,8 @@ not create:
 - lock files whose names encode installation identity,
 - any artifact outside a directory the host explicitly nominated.
 
-State that must survive a restart — such as which installation the host
-prefers — is the **host's** to remember, not the relay's. This keeps the relay
+State that must survive a restart -- such as which installation the host
+prefers -- is the **host's** to remember, not the relay's. This keeps the relay
 stateless with respect to identification, which is what makes axiom A4
 enforceable rather than aspirational.
 
@@ -298,7 +298,7 @@ Because compatibility is expressed as classes (A3), the relay maintains an
 internal mapping:
 
 ```
-observed engine signals  →  compatibility class  →  calling convention
+observed engine signals  ->  compatibility class  ->  calling convention
 ```
 
 The middle column is the only thing that crosses the pipe. The mapping itself
@@ -316,8 +316,8 @@ Unknown signals map to no class at all. The relay then reports
 
 A conforming relay:
 
-1. Selects a transport from §2 and refuses a second concurrent session.
-2. Implements §3 framing exactly, including the 1 MiB control limit.
+1. Selects a transport from section 2 and refuses a second concurrent session.
+2. Implements section 3 framing exactly, including the 1 MiB control limit.
 3. Answers `HELLO` with the highest mutually supported revision.
 4. Ignores unknown feature strings.
 5. Reports capabilities as classes, never versions.
@@ -334,7 +334,7 @@ A conforming host:
 
 ---
 
-## Appendix A — Why length-prefixed frames rather than line-delimited JSON
+## Appendix A -- Why length-prefixed frames rather than line-delimited JSON
 
 Line-delimited JSON is easier to debug by eye. Length-prefixed framing was
 chosen anyway because:
