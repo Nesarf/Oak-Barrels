@@ -12,5 +12,8 @@
 /// not a requirement.
 library;
 
+export 'src/relay/client.dart';
 export 'src/relay/frame.dart';
 export 'src/relay/reason.dart';
+export 'src/relay/transport.dart';
+export 'src/relay/transports/stdio_transport.dart';
