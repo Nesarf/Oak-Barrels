@@ -1,16 +1,14 @@
-include: package:flutter_lints/flutter.yaml
+# This package is deliberately framework-free, so it uses the plain Dart lint
+# set rather than a UI-framework one.
+include: package:lints/recommended.yaml
 
 analyzer:
   exclude:
-    - "lib/src/ffi/*.generated.dart"
     - "**/*.g.dart"
   language:
     strict-casts: true
     strict-inference: true
     strict-raw-types: true
-  errors:
-    # FFI work legitimately needs raw pointers and dynamic library handles.
-    avoid_dynamic_calls: warning
 
 linter:
   rules:
