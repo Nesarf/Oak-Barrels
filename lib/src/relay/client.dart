@@ -300,6 +300,36 @@ class Relay {
     );
   }
 
+  /// Asks the station for a diagnostic report, per protocol section 8.
+  ///
+  /// Diagnostics are off until a host opts in with [enable]. Identification is a
+  /// second, independent switch ([identify]) that is off by default: a host that
+  /// never sets it can run for years without the station ever telling it what it
+  /// is talking to, and that is the intended posture.
+  ///
+  /// Call with no arguments to query the current state. That throws
+  /// [RelayException] with [ReasonCode.diagDisabled] when diagnostics have not
+  /// been enabled, because a station that answered anyway would have said
+  /// something it was not asked to say.
+  Future<Diagnostics> diagnostics({
+    bool? enable,
+    bool? identify,
+    Duration timeout = defaultRequestTimeout,
+  }) async {
+    final response = await _request(
+      Frame(MessageType.diagRequest, <String, Object?>{
+        if (enable != null) 'enable': enable,
+        if (identify != null) 'identify': identify,
+      }),
+      timeout,
+    );
+    if (response.type != MessageType.diagReply) {
+      throw RelayException(
+          null, 'expected DIAG_REPLY, got ${response.type.name}');
+    }
+    return Diagnostics.fromPayload(response.payload);
+  }
+
   /// Sends `BYE` and releases the transport.
   Future<void> shutdown({
     Duration timeout = defaultRequestTimeout,
@@ -317,6 +347,63 @@ class Relay {
     await _subscription.cancel();
     await _transport.close();
   }
+}
+
+/// A redacted diagnostic report.
+///
+/// Everything here describes *behaviour*: compatibility classes and counts.
+/// Paths, version strings and vendor names are absent by construction -- the
+/// station never collects them, rather than stripping them on the way out,
+/// because stripping is a step that can be forgotten and omission cannot.
+class Diagnostics {
+  factory Diagnostics.fromPayload(Map<String, Object?> payload) {
+    final rawClasses = payload['classes'];
+    final rawRevision = payload['revision'];
+    final rawTargets = payload['targets'];
+    final rawSymbols = payload['symbols_resolved'];
+
+    return Diagnostics(
+      diagnosticsEnabled: payload['diagnose'] == true,
+      identificationEnabled: payload['identify'] == true,
+      revision: rawRevision is int ? rawRevision : 0,
+      classes: rawClasses is List
+          ? rawClasses.whereType<String>().toSet()
+          : const <String>{},
+      targetCount: rawTargets is int ? rawTargets : 0,
+      resolvedSymbolCount: rawSymbols is int ? rawSymbols : 0,
+    );
+  }
+  const Diagnostics({
+    required this.diagnosticsEnabled,
+    required this.identificationEnabled,
+    required this.revision,
+    required this.classes,
+    required this.targetCount,
+    required this.resolvedSymbolCount,
+  });
+
+  /// Whether the `diagnose` switch is on.
+  final bool diagnosticsEnabled;
+
+  /// Whether the `identify` switch is on. Off unless explicitly requested.
+  final bool identificationEnabled;
+
+  /// The negotiated protocol revision.
+  final int revision;
+
+  /// Compatibility classes currently offered.
+  final Set<String> classes;
+
+  /// Number of live targets.
+  final int targetCount;
+
+  /// How many symbols have been resolved. A count, never a list of names.
+  final int resolvedSymbolCount;
+
+  @override
+  String toString() => 'Diagnostics(diagnose: $diagnosticsEnabled, '
+      'identify: $identificationEnabled, classes: ${classes.length}, '
+      'targets: $targetCount)';
 }
 
 /// A failure reported by the station, carrying a protocol reason code.

@@ -50,8 +50,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The host-side Dart client** (`lib/`): transport abstraction, a stdio
   transport that spawns a station, and a paired-request client over the wire
   protocol.
+- `Relay.diagnostics()` on the host client, so the diagnostics switch of
+  protocol section 8 is reachable and not merely specified.
 - Native test suite (`tests/`, 66 cases) covering the frame codec, the JSON
-  type and every session rule, alongside the Dart suite (28 cases).
+  type and every session rule, alongside the Dart suite.
+- An end-to-end suite that spawns the real station binary and speaks the real
+  protocol over real pipes. It skips when no station has been built; CI builds
+  one first, because two fakes can agree about a protocol neither end
+  implements.
+- A CI job that builds the station, runs the native tests, and then runs the
+  end-to-end suite against the binary it just produced.
 - CI hygiene guard now also checks that no vendor name, version string,
   absolute path or non-ASCII character has been committed.
 
