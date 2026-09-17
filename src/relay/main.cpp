@@ -12,10 +12,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "relay/backend.hpp"
+#include "relay/discovery/discovery_backend.hpp"
 #include "relay/protocol/frame.hpp"
 #include "relay/session.hpp"
 #include "relay/transport/stdio_transport.hpp"
@@ -30,10 +33,15 @@ const char* kUsage =
     "oak-barrels - a neutral relay between a host and an installed audio engine.\n"
     "\n"
     "Usage:\n"
-    "  oak-barrels [--version] [--help]\n"
+    "  oak-barrels [--search-root <dir>]... [--version] [--help]\n"
     "\n"
     "With no arguments it serves one session over standard input and standard\n"
     "output. Frames are length-prefixed; see docs/RELAY_PROTOCOL.md.\n"
+    "\n"
+    "  --search-root <dir>  nominate a directory for discovery. Repeatable.\n"
+    "                       The station invents no locations of its own and\n"
+    "                       looks nowhere unless asked, so with no\n"
+    "                       --search-root it never touches the filesystem.\n"
     "\n"
     "Standard output carries frames and nothing else. Diagnostics go to\n"
     "standard error, so a host may parse stdout without filtering it.\n";
@@ -55,6 +63,8 @@ class StdioSink final : public oak::relay::FrameSink {
 }  // namespace
 
 int main(int argc, char** argv) {
+  std::vector<std::string> searchRoots;
+
   for (int i = 1; i < argc; ++i) {
     const std::string argument = argv[i];
 
@@ -66,6 +76,14 @@ int main(int argc, char** argv) {
       std::fprintf(stdout, "oak-barrels %s\n", OAK_BARRELS_VERSION);
       return 0;
     }
+    if (argument == "--search-root") {
+      if (i + 1 >= argc) {
+        std::fprintf(stderr, "oak-barrels: --search-root needs a directory\n");
+        return 2;
+      }
+      searchRoots.emplace_back(argv[++i]);
+      continue;
+    }
 
     std::fprintf(stderr, "oak-barrels: unrecognised argument\n");
     return 2;
@@ -74,10 +92,19 @@ int main(int argc, char** argv) {
   oak::relay::transport::StdioTransport transport;
   StdioSink sink(transport);
 
-  // Until discovery and binding land, the station has no engine to talk to.
-  // It says so honestly rather than advertising a class it cannot honour.
-  oak::relay::NullBackend backend;
-  oak::relay::Session session(backend, sink);
+  // Discovery is host-directed and opt-in. With no nominated root, no
+  // filesystem code runs at all -- which is the default posture, because a
+  // relay that surveyed the machine unprompted would be doing the exact thing
+  // this project exists to avoid.
+  std::unique_ptr<oak::relay::EngineBackend> backend;
+  if (searchRoots.empty()) {
+    backend = std::make_unique<oak::relay::NullBackend>();
+  } else {
+    backend = std::make_unique<oak::relay::discovery::DiscoveryBackend>(
+        std::move(searchRoots));
+  }
+
+  oak::relay::Session session(*backend, sink);
 
   oak::relay::protocol::FrameDecoder decoder;
   std::vector<std::uint8_t> buffer(oak::relay::transport::StdioTransport::kMaxIoChunk);

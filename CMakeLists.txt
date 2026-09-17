@@ -33,6 +33,8 @@ endif()
 # configure-time dependency on somebody's SDK would defeat the whole point.
 # ---------------------------------------------------------------------------
 add_library(oak_barrels_core STATIC
+    src/relay/discovery/module_format.cpp
+    src/relay/discovery/scanner.cpp
     src/relay/protocol/frame.cpp
     src/relay/protocol/json.cpp
     src/relay/transport/stdio_transport.cpp

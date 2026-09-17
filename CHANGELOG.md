@@ -31,6 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   source using the machine's code page can build the same file differently in
   different regions. The substitution table is in `CONTRIBUTING.md`.
 
+- The station still claims no compatibility classes, and now says so after
+  having looked. Recognising a container format is not knowing a calling
+  convention, so it reports what it examined and offers nothing. Under-claiming
+  means a host does less; over-claiming crashes on a user's machine.
+
 - `pubspec.yaml` no longer declares a `plugin:` section and no longer depends
   on the Flutter SDK. The host-side client is transport and protocol only,
   which also lets it be tested with plain `dart test`.
@@ -52,8 +57,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   protocol.
 - `Relay.diagnostics()` on the host client, so the diagnostics switch of
   protocol section 8 is reachable and not merely specified.
-- Native test suite (`tests/`, 66 cases) covering the frame codec, the JSON
-  type and every session rule, alongside the Dart suite.
+- Native test suite (`tests/`, 85 cases) covering the frame codec, the JSON
+  type, module identification, the scanner, and every session rule, alongside
+  the Dart suite.
 - An end-to-end suite that spawns the real station binary and speaks the real
   protocol over real pipes. It skips when no station has been built; CI builds
   one first, because two fakes can agree about a protocol neither end
@@ -65,6 +71,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `example/reference_host.dart`, a runnable host that walks negotiate ->
   capabilities -> open -> shutdown and degrades gracefully when the station
   will not serve it, which is what every host has to do anyway.
+- **Discovery, in the only form that is honest without a probe.** Candidate
+  module files are identified by their operating-system container format (PE,
+  ELF, Mach-O): public, stable, and owned by nobody. They are enumerated only
+  under directories the host nominates with `--search-root`, so the station
+  invents no search locations and, with no root nominated, never touches the
+  filesystem at all.
+- Diagnostics report how many files were examined and how many looked like
+  modules. Counts, never paths: a path is a discovered fact and stays where it
+  was found.
 
 ### Removed
 
@@ -80,7 +95,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   capability classes and refuses every `OPEN` with `NO_ENGINE`. Refusing is the
   correct behaviour: advertising a class it cannot honour is exactly the
   over-claiming that protocol section 10 forbids.
-- TODO(relay): discovery from neutral signals, with conservative class mapping.
+- TODO(relay): probing, and the class mapping proper. Container formats are
+  recognised today but no calling shape is, so no class is claimable yet.
 - TODO(relay): dynamic binding layer.
 - TODO(transport): unix domain socket and named pipe transports.
 

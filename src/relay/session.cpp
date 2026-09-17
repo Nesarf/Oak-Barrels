@@ -339,6 +339,11 @@ bool Session::handleDiagRequest(const Value& payload) {
   reply.set("targets", Value::integer(static_cast<std::int64_t>(backend_.targetCount())));
   reply.set("symbols_resolved",
             Value::integer(static_cast<std::int64_t>(backend_.resolvedSymbolCount())));
+  reply.set("files_examined",
+            Value::integer(static_cast<std::int64_t>(backend_.filesExamined())));
+  reply.set("candidates_found",
+            Value::integer(static_cast<std::int64_t>(backend_.candidatesFound())));
+  reply.set("discovery_truncated", Value::boolean(backend_.discoveryTruncated()));
 
   std::vector<Value> classes;
   for (const std::string& name : backend_.capabilityClasses()) {

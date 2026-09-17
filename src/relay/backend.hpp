@@ -59,15 +59,31 @@ class EngineBackend {
 
   /// Number of live targets, for diagnostics.
   virtual std::uint32_t targetCount() const { return 0; }
+
+  /// How many files discovery opened and classified.
+  ///
+  /// A count, never a list of paths (section 8). Zero for a backend that never
+  /// looked, which is also a truthful answer rather than a missing one.
+  virtual std::uint32_t filesExamined() const { return 0; }
+
+  /// How many of those files looked like loadable modules.
+  ///
+  /// Reported separately from `filesExamined` because the two answer different
+  /// questions: how much of the tree was read, and how much of it was worth
+  /// reading. Collapsing them would make a truncation report ambiguous.
+  virtual std::uint32_t candidatesFound() const { return 0; }
+
+  /// Whether a discovery limit cut the search short, so the picture is partial.
+  virtual bool discoveryTruncated() const { return false; }
 };
 
-/// A backend that has found no engine.
+/// A backend that has found no engine, and was not asked to look for one.
 ///
-/// This is what the station runs on until discovery lands, and it is not a
-/// placeholder that lies: it reports no classes and refuses every open with
-/// `NO_ENGINE`, which is precisely what a station with nothing to talk to
-/// should say. Reporting a guessed class here would violate section 10 and would be
-/// the failure mode that hurts users.
+/// The station uses this when the host nominated no search locations, so no
+/// filesystem code runs at all. It is not a placeholder that lies: it reports
+/// no classes and refuses every open with `NO_ENGINE`, which is precisely what
+/// a station with nothing to talk to should say. Reporting a guessed class here
+/// would violate section 10 and would be the failure mode that hurts users.
 class NullBackend final : public EngineBackend {
  public:
   std::vector<std::string> capabilityClasses() const override { return {}; }

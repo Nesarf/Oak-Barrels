@@ -6,6 +6,8 @@ add_executable(relay_tests
     test_main.cpp
     test_json.cpp
     test_frame.cpp
+    test_module_format.cpp
+    test_scanner.cpp
     test_session.cpp
 )
 
