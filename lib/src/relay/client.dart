@@ -361,6 +361,8 @@ class Diagnostics {
     final rawRevision = payload['revision'];
     final rawTargets = payload['targets'];
     final rawSymbols = payload['symbols_resolved'];
+    final rawFiles = payload['files_examined'];
+    final rawCandidates = payload['candidates_found'];
 
     return Diagnostics(
       diagnosticsEnabled: payload['diagnose'] == true,
@@ -371,6 +373,9 @@ class Diagnostics {
           : const <String>{},
       targetCount: rawTargets is int ? rawTargets : 0,
       resolvedSymbolCount: rawSymbols is int ? rawSymbols : 0,
+      filesExamined: rawFiles is int ? rawFiles : 0,
+      candidatesFound: rawCandidates is int ? rawCandidates : 0,
+      discoveryTruncated: payload['discovery_truncated'] == true,
     );
   }
   const Diagnostics({
@@ -380,6 +385,9 @@ class Diagnostics {
     required this.classes,
     required this.targetCount,
     required this.resolvedSymbolCount,
+    required this.filesExamined,
+    required this.candidatesFound,
+    required this.discoveryTruncated,
   });
 
   /// Whether the `diagnose` switch is on.
@@ -400,10 +408,23 @@ class Diagnostics {
   /// How many symbols have been resolved. A count, never a list of names.
   final int resolvedSymbolCount;
 
+  /// How many files discovery opened and classified.
+  ///
+  /// Counts, never lists of paths. Paths are discovered facts, and per protocol
+  /// section 8 they stay where they were found.
+  final int filesExamined;
+
+  /// How many of those files looked like loadable modules.
+  final int candidatesFound;
+
+  /// Whether a discovery limit cut the search short, so the picture is partial.
+  final bool discoveryTruncated;
+
   @override
   String toString() => 'Diagnostics(diagnose: $diagnosticsEnabled, '
       'identify: $identificationEnabled, classes: ${classes.length}, '
-      'targets: $targetCount)';
+      'targets: $targetCount, examined: $filesExamined, '
+      'candidates: $candidatesFound)';
 }
 
 /// A failure reported by the station, carrying a protocol reason code.

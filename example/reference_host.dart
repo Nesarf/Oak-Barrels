@@ -24,14 +24,22 @@ import 'package:oak_barrels/oak_barrels.dart';
 const String _rule = '----------------------------------------';
 
 Future<void> main(List<String> arguments) async {
-  if (arguments.length != 1) {
-    stderr.writeln('usage: reference_host <path-to-oak-barrels>');
+  if (arguments.isEmpty) {
+    stderr.writeln('usage: reference_host <path-to-oak-barrels> '
+        '[station arguments...]');
     exitCode = 2;
     return;
   }
 
+  // Anything after the executable is passed straight through, so the host can
+  // nominate search roots without this example knowing what they mean.
+  final stationArguments = arguments.sublist(1);
+
   stdout.writeln('spawning a station');
-  final relay = await Relay.spawn(arguments.single);
+  if (stationArguments.isNotEmpty) {
+    stdout.writeln('  with arguments: ${stationArguments.join(' ')}');
+  }
+  final relay = await Relay.spawn(arguments.first, arguments: stationArguments);
 
   try {
     await _run(relay);
@@ -147,6 +155,8 @@ Future<void> _showDiagnostics(Relay relay) async {
   stdout.writeln('  classes:           ${report.classes.length}');
   stdout.writeln('  live targets:      ${report.targetCount}');
   stdout.writeln('  symbols resolved:  ${report.resolvedSymbolCount}');
+  stdout.writeln('  files examined:    ${report.filesExamined}');
+  stdout.writeln('  candidates found:  ${report.candidatesFound}');
 
   // Note what is not above, and cannot be: a path, a version, a vendor, a
   // machine identifier. The station does not collect them, so there is nothing

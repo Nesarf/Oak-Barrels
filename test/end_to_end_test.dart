@@ -122,6 +122,46 @@ void main() {
       expect(lines.single, startsWith('oak-barrels '));
     });
 
+    test('looks only where the host told it to, and still claims nothing',
+        () async {
+      final root = Directory.systemTemp.createTempSync('oak-e2e-scan-');
+      addTearDown(() {
+        if (root.existsSync()) root.deleteSync(recursive: true);
+      });
+
+      // A file that is a loadable module by container format and nothing more.
+      File('${root.path}/candidate').writeAsBytesSync(
+        <int>[0x7f, 0x45, 0x4c, 0x46, 2, 1, 1, 0],
+      );
+      File('${root.path}/notes.txt').writeAsStringSync('not a module');
+
+      final relay = await Relay.spawn(
+        station!,
+        arguments: <String>['--search-root', root.path],
+      );
+      addTearDown(relay.dispose);
+      await relay.negotiate();
+
+      // It looked, and it still offers nothing. Recognising a container format
+      // is not the same as knowing a calling convention, and claiming a class
+      // from a format alone is how a relay starts crashing on user machines.
+      expect((await relay.capabilities()).classes, isEmpty);
+
+      final report = await relay.diagnostics(enable: true);
+      expect(report.filesExamined, 2); // the module, and the notes file
+      expect(report.candidatesFound, 1);
+      expect(report.discoveryTruncated, isFalse);
+    });
+
+    test('never touches the filesystem when no root was nominated', () async {
+      final relay = await connected();
+      addTearDown(relay.dispose);
+
+      final report = await relay.diagnostics(enable: true);
+      expect(report.filesExamined, 0);
+      expect(report.candidatesFound, 0);
+    });
+
     test('rejects an argument it does not understand', () async {
       final result = await Process.run(station!, <String>['--frobnicate']);
       expect(result.exitCode, 2);
