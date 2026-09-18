@@ -245,20 +245,60 @@ version, or a filesystem path.
 
 ## 7. Audio path
 
-**Audio does not cross this pipe by default.**
+**Audio does not cross the control pipe, ever.**
 
 The relay's job is *control*. Where the audio goes is the backing engine's
 business -- it drives the system audio device directly, as it would for any
 other host.
 
-A future revision may negotiate a **bulk channel** for hosts that need to
-process the audio themselves. If it does, that channel must be:
+A host that needs to process the audio itself may instead ask for a **bulk
+channel** on a second transport. Three properties are required of it, and each
+is structural rather than a matter of remembering:
 
-- a separate transport (shared memory, or a second socket), never the control
-  pipe, so a slow audio consumer cannot stall control messages;
-- declared as a capability class (`engine.bulk.pcm`) so hosts can detect its
-  absence rather than discovering it by failure;
-- silent about formats it cannot honour.
+- **A separate transport**, never the control pipe, so that a host which stops
+  reading its audio stalls its audio and nothing else. A relay that stopped
+  answering control messages because somebody stopped listening to sound would
+  have confused two jobs. The endpoint is named by the host, as everywhere else
+  in section 2: the relay invents no name.
+- **Declared as a capability class**, `engine.bulk.pcm`, so a host detects its
+  absence rather than discovering it by failure. It is offered only while a
+  channel is genuinely running -- the host asked for one, an engine was bound,
+  and that engine's profile declared a sink. Any of the three missing means no
+  channel, and the host is told so rather than left to find out.
+- **Silent about formats it cannot honour.** The channel moves bytes and never
+  describes them. The engine and the host agree on a format between themselves;
+  a relay that never made a claim cannot make a false one.
+
+### 7.1 How an engine writes to it
+
+The relay installs a sink into the engine, and the engine calls it. This is the
+one shape in the vocabulary (section 4.3) that is called *back*, and its
+signature is what it is because of where it runs:
+
+```c
+size_t sink(const void* data, size_t bytes, void* context);
+
+/* The shape a profile names as `sink`. The relay calls this. */
+void   install(size_t (*sink)(const void*, size_t, void*), void* context);
+```
+
+The sink **returns how many bytes it accepted**, which may be fewer than it was
+offered. It never blocks, never allocates and never locks, because it is called
+on whatever thread the engine chose -- usually its audio thread. A short return
+means the far end is behind, and what to do about that is the engine's decision,
+because only the engine knows whether dropping audio or stopping is worse. The
+relay counts what it refused rather than hiding it.
+
+A conforming engine therefore must tolerate a short count, and must not call the
+sink after the relay has gone.
+
+### 7.2 What this is not
+
+**No message carries audio.** The bulk channel is a transport, not an extension
+of section 3.1: the frame types are unchanged, and a host that never asks for a
+channel never sees one. This is why the section needed no new revision -- the
+`bulk` field and the class name were already in `CAPS_REPLY`, and this only
+gives them something true to report.
 
 ---
 

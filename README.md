@@ -134,7 +134,7 @@ over-claiming that protocol section 10 forbids.
 | Probe profiles and dynamic binding | [x] |
 | Reference host example | [x] |
 | Named pipe client for the Dart host | [x] via dart:ffi, with no package added |
-| Bulk audio channel (protocol section 7) | [ ] a future revision |
+| Bulk audio channel (protocol section 7) | [x] a second transport, with a sink installed into the engine |
 
 ## Telling a station what to do
 
@@ -146,6 +146,7 @@ baked into the build.
 | *(none)* | serve one session over standard input and output |
 | `--listen <path>` | serve one connection on a unix domain socket |
 | `--pipe <name>` | serve one client on a named pipe |
+| `--bulk <name>` | also serve the audio channel of section 7 on a second endpoint |
 | `--search-root <dir>` | a directory to examine. Repeatable. |
 | `--probe-profile <file>` | how to talk to whatever is found there |
 

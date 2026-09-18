@@ -6,6 +6,7 @@
 // bypassed by the linker.
 #include "harness.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <string>
@@ -136,6 +137,15 @@ std::vector<Profile> missProfiles() {
   })");
   OAK_CHECK(profiles.has_value());
   return *profiles;
+}
+
+/// Collects whatever an engine puts into a sink.
+std::vector<std::uint8_t> g_sinkData;
+
+std::size_t recordSink(const void* data, std::size_t bytes, void* /*context*/) {
+  const auto* raw = static_cast<const std::uint8_t*>(data);
+  g_sinkData.insert(g_sinkData.end(), raw, raw + bytes);
+  return bytes;
 }
 
 }  // namespace
@@ -316,4 +326,49 @@ OAK_TEST(dynamic_library_moves_without_double_freeing) {
 
   // Still usable through the new owner, and unloading twice is not attempted.
   OAK_CHECK(second.resolve("oak_fixture_trigger") != nullptr);
+}
+
+OAK_TEST(prober_installs_a_sink_when_the_profile_declares_one) {
+  const FixtureTree tree;
+  if (!tree.usable()) return;
+
+  g_sinkData.clear();
+
+  const auto profiles = parseProfiles(R"({
+    "profiles": [
+      {
+        "class": "engine.bulk.pcm",
+        "bindings": [
+          { "role": "bulk", "symbol": "oak_fixture_register_sink", "shape": "sink" }
+        ]
+      }
+    ]
+  })");
+  OAK_CHECK(profiles.has_value());
+
+  const auto scan = scanForCandidates({tree.path().u8string()});
+  const BindingAttempt attempt = bindFirstAvailable(scan.candidates, *profiles);
+  OAK_CHECK(attempt.engine.isBound());
+  OAK_CHECK(attempt.engine.hasBinding(Role::Bulk));
+
+  OAK_CHECK(attempt.engine.installSink(&recordSink, nullptr));
+
+  // The fixture emits its banner the instant it is handed a sink, which is what
+  // makes the whole callback direction observable.
+  OAK_CHECK_EQ(std::string(g_sinkData.begin(), g_sinkData.end()),
+               std::string("OAK-AUDIO-BANNER"));
+}
+
+OAK_TEST(prober_reports_no_sink_when_the_profile_declares_none) {
+  const FixtureTree tree;
+  if (!tree.usable()) return;
+
+  const auto scan = scanForCandidates({tree.path().u8string()});
+  const BindingAttempt attempt = bindFirstAvailable(scan.candidates, fixtureProfiles());
+  OAK_CHECK(attempt.engine.isBound());
+
+  // An engine that produces no audio is not a broken engine, so this is false
+  // rather than an error -- and the channel it would need is never created.
+  OAK_CHECK(!attempt.engine.hasBinding(Role::Bulk));
+  OAK_CHECK(!attempt.engine.installSink(&recordSink, nullptr));
 }

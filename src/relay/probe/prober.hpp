@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "relay/binding/dynamic_library.hpp"
+#include "relay/bulk/sink.hpp"
 #include "relay/discovery/scanner.hpp"
 #include "relay/probe/profile.hpp"
 
@@ -55,6 +56,16 @@ class BoundEngine {
 
   /// Calls the binding declared for [role] with a name.
   bool callWithName(Role role, const std::string& name) const;
+
+  /// Whether any satisfied profile binds [role].
+  bool hasBinding(Role role) const { return bindingFor(role) != nullptr; }
+
+  /// Installs a sink into the engine, per protocol section 7.
+  ///
+  /// Returns false when no satisfied profile declares a sink, which is the
+  /// ordinary case rather than a failure: an engine that produces no audio is
+  /// not a broken engine.
+  bool installSink(bulk::Sink sink, void* context) const;
 
  private:
   /// The first satisfied profile that declares [role], in file order.

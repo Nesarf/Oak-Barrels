@@ -10,9 +10,13 @@
 // no pipe name, because a name the relay picks is a name anything else on the
 // machine can guess.
 //
+// A second endpoint may be nominated for audio (protocol section 7). It is a
+// separate transport on purpose: a host that stops reading its audio must stall
+// its audio and nothing else.
+//
 // Exit codes:
 //   0  clean end of session
-//   1  the peer violated the protocol, or the transport failed
+//   1  the peer violated the protocol, or a transport failed
 //   2  bad command line
 
 #include <cstddef>
@@ -43,14 +47,19 @@ const char* kUsage =
     "oak-barrels - a neutral relay between a host and an installed audio engine.\n"
     "\n"
     "Usage:\n"
-    "  oak-barrels [transport] [--search-root <dir>]... [--probe-profile <f>]\n"
-    "              [--version] [--help]\n"
+    "  oak-barrels [transport] [--bulk <name>] [--search-root <dir>]...\n"
+    "              [--probe-profile <f>] [--version] [--help]\n"
     "\n"
-    "Transport, choose at most one. The default is standard input and output,\n"
-    "which is what a host that spawns this process wants.\n"
+    "Control transport, choose at most one. The default is standard input and\n"
+    "output, which is what a host that spawns this process wants.\n"
     "\n"
     "  --listen <path>      serve one connection on a unix domain socket.\n"
     "  --pipe <name>        serve one client on a named pipe.\n"
+    "\n"
+    "  --bulk <name>        also serve the audio channel of protocol section 7\n"
+    "                       on a second endpoint, of whichever kind this\n"
+    "                       platform provides. Only used if a bound engine's\n"
+    "                       profile declares a sink to install.\n"
     "  --search-root <dir>  nominate a directory for discovery. Repeatable.\n"
     "                       The station invents no locations of its own and\n"
     "                       looks nowhere unless asked, so with no\n"
@@ -61,7 +70,7 @@ const char* kUsage =
     "                       build, which is how the station can bind an\n"
     "                       engine it has never heard of.\n"
     "\n"
-    "The chosen channel carries frames and nothing else. Diagnostics go to\n"
+    "The control channel carries frames and nothing else. Diagnostics go to\n"
     "standard error, which is never part of the protocol.\n";
 
 /// Writes session frames to whichever transport is in use.
@@ -84,6 +93,28 @@ int failSetup(const std::string& error) {
   return 2;
 }
 
+/// Binds [name] and waits for the one peer that will use it.
+///
+/// The kind is the platform's own: a unix domain socket where those exist, a
+/// named pipe where they do not. Which one it is does not reach the protocol,
+/// so a host gets the natural thing without the relay having to ask.
+std::unique_ptr<oak::relay::transport::Transport> openEndpoint(const std::string& name,
+                                                               std::string& error) {
+#ifdef _WIN32
+  auto endpoint = oak::relay::transport::NamedPipeTransport::prepare(name, error);
+#else
+  auto endpoint = oak::relay::transport::UnixSocketTransport::prepare(name, error);
+#endif
+  if (!endpoint) return nullptr;
+
+  // Waiting is reported, because a host that forgot to connect would otherwise
+  // see the process simply stop.
+  std::fprintf(stderr, "oak-barrels: waiting for one connection\n");
+  if (!endpoint->acceptOne(error)) return nullptr;
+
+  return endpoint;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -91,6 +122,7 @@ int main(int argc, char** argv) {
   std::string profilePath;
   std::string listenPath;
   std::string pipeName;
+  std::string bulkName;
 
   for (int i = 1; i < argc; ++i) {
     const std::string argument = argv[i];
@@ -103,36 +135,25 @@ int main(int argc, char** argv) {
       std::fprintf(stdout, "oak-barrels %s\n", OAK_BARRELS_VERSION);
       return 0;
     }
-    if (argument == "--search-root") {
+    if (argument == "--search-root" || argument == "--probe-profile" ||
+        argument == "--listen" || argument == "--pipe" || argument == "--bulk") {
       if (i + 1 >= argc) {
-        std::fprintf(stderr, "oak-barrels: --search-root needs a directory\n");
+        std::fprintf(stderr, "oak-barrels: %s needs a value\n", argument.c_str());
         return 2;
       }
-      searchRoots.emplace_back(argv[++i]);
-      continue;
-    }
-    if (argument == "--probe-profile") {
-      if (i + 1 >= argc) {
-        std::fprintf(stderr, "oak-barrels: --probe-profile needs a file\n");
-        return 2;
+      const std::string value = argv[++i];
+
+      if (argument == "--search-root") {
+        searchRoots.push_back(value);
+      } else if (argument == "--probe-profile") {
+        profilePath = value;
+      } else if (argument == "--listen") {
+        listenPath = value;
+      } else if (argument == "--pipe") {
+        pipeName = value;
+      } else {
+        bulkName = value;
       }
-      profilePath = argv[++i];
-      continue;
-    }
-    if (argument == "--listen") {
-      if (i + 1 >= argc) {
-        std::fprintf(stderr, "oak-barrels: --listen needs a path\n");
-        return 2;
-      }
-      listenPath = argv[++i];
-      continue;
-    }
-    if (argument == "--pipe") {
-      if (i + 1 >= argc) {
-        std::fprintf(stderr, "oak-barrels: --pipe needs a name\n");
-        return 2;
-      }
-      pipeName = argv[++i];
       continue;
     }
 
@@ -140,34 +161,33 @@ int main(int argc, char** argv) {
     return 2;
   }
 
-  if (!listenPath.empty() && !pipeName.empty()) {
-    std::fprintf(stderr, "oak-barrels: choose one transport, not two\n");
+  if ((!listenPath.empty() ? 1 : 0) + (!pipeName.empty() ? 1 : 0) > 1) {
+    std::fprintf(stderr, "oak-barrels: choose one control transport, not two\n");
     return 2;
   }
 
   std::unique_ptr<oak::relay::transport::Transport> transport;
   if (!listenPath.empty()) {
     std::string error;
-    auto socket = oak::relay::transport::UnixSocketTransport::prepare(listenPath, error);
-    if (!socket) return failSetup(error);
-
-    // Waiting is reported, because a host that forgot to connect would
-    // otherwise see the process simply stop.
-    std::fprintf(stderr, "oak-barrels: waiting for one connection\n");
-    if (!socket->acceptOne(error)) return failSetup(error);
-
-    transport = std::move(socket);
+    transport = openEndpoint(listenPath, error);
+    if (!transport) return failSetup(error);
   } else if (!pipeName.empty()) {
     std::string error;
-    auto pipe = oak::relay::transport::NamedPipeTransport::prepare(pipeName, error);
-    if (!pipe) return failSetup(error);
-
-    std::fprintf(stderr, "oak-barrels: waiting for one client\n");
-    if (!pipe->acceptOne(error)) return failSetup(error);
-
-    transport = std::move(pipe);
+    transport = openEndpoint(pipeName, error);
+    if (!transport) return failSetup(error);
   } else {
     transport = std::make_unique<oak::relay::transport::StdioTransport>();
+  }
+
+  // The audio endpoint is opened and accepted before the session starts, for
+  // the same reason the control one is: accepting on a worker would mean a
+  // worker that cannot be interrupted, and a station that cannot be shut down
+  // while a host declines to connect.
+  std::unique_ptr<oak::relay::transport::Transport> audioEndpoint;
+  if (!bulkName.empty()) {
+    std::string error;
+    audioEndpoint = openEndpoint(bulkName, error);
+    if (!audioEndpoint) return failSetup(error);
   }
 
   TransportSink sink(*transport);
@@ -197,7 +217,7 @@ int main(int argc, char** argv) {
         std::move(searchRoots));
   } else {
     backend = std::make_unique<oak::relay::probe::ProbingBackend>(
-        std::move(searchRoots), std::move(profiles));
+        std::move(searchRoots), std::move(profiles), std::move(audioEndpoint));
   }
 
   oak::relay::Session session(*backend, sink);

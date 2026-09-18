@@ -9,6 +9,7 @@
 /// builds the station first and points OAK_BARRELS_STATION at the result.
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:oak_barrels/oak_barrels.dart';
@@ -26,6 +27,46 @@ String? findStation() {
     if (File(candidate).existsSync()) return candidate;
   }
   return null;
+}
+
+/// Locates the stand-in engine, or null when it has not been built.
+///
+/// The name differs by platform, so this looks for the stem rather than
+/// guessing a suffix.
+File? findProbeFixture() {
+  final override = Platform.environment['OAK_PROBE_FIXTURE_PATH'];
+  if (override != null && override.isNotEmpty) {
+    final file = File(override);
+    if (file.existsSync()) return file;
+  }
+
+  for (final path in <String>['build/tests', '../build/tests']) {
+    final directory = Directory(path);
+    if (!directory.existsSync()) continue;
+    for (final entry in directory.listSync()) {
+      if (entry is File && entry.path.contains('oak-probe-fixture')) {
+        return entry;
+      }
+    }
+  }
+  return null;
+}
+
+/// Connects to the audio endpoint, retrying while the station binds it.
+Future<RelayTransport> _connectAudio(String name) async {
+  final deadline = DateTime.now().add(const Duration(seconds: 15));
+
+  while (true) {
+    try {
+      if (Platform.isWindows) {
+        return await NamedPipeTransport.connect(name);
+      }
+      return await UnixSocketTransport.connect(name);
+    } on SocketException {
+      if (DateTime.now().isAfter(deadline)) rethrow;
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+  }
 }
 
 /// Connects to a pipe the station has been asked to create, retrying while the
@@ -235,6 +276,100 @@ void main() {
       expect(await relay.negotiate(), 1);
       expect((await relay.capabilities()).classes, isEmpty);
       await relay.shutdown();
+    });
+
+    test('carries audio on a second channel when a profile asks for one',
+        () async {
+      final fixture = findProbeFixture();
+      if (fixture == null) return; // the stand-in engine is not built
+
+      final directory = Directory.systemTemp.createTempSync('oak-e2e-bulk-');
+      addTearDown(() async {
+        // The stand-in engine lives in this directory, and on this platform a
+        // module loaded by a running process cannot be removed. The station
+        // exits when its input closes, but not instantly, so wait for it rather
+        // than failing a passing test inside its own teardown.
+        for (var attempt = 0; attempt < 60; ++attempt) {
+          if (!directory.existsSync()) return;
+          try {
+            directory.deleteSync(recursive: true);
+            return;
+          } on FileSystemException {
+            await Future<void>.delayed(const Duration(milliseconds: 50));
+          }
+        }
+      });
+
+      // Discovery works on what a file exports, not on what it is called, so
+      // the copy gets the same name and no more meaning than the original.
+      File('${directory.path}/${fixture.uri.pathSegments.last}')
+          .writeAsBytesSync(fixture.readAsBytesSync());
+
+      final profile = File('${directory.path}/profile.json')
+        ..writeAsStringSync('''
+{
+  "profiles": [
+    {
+      "class": "engine.param.continuous",
+      "bindings": [
+        { "role": "set", "symbol": "oak_fixture_set_level", "shape": "level" }
+      ]
+    },
+    {
+      "class": "engine.bulk.pcm",
+      "bindings": [
+        { "role": "bulk", "symbol": "oak_fixture_register_sink", "shape": "sink" }
+      ]
+    }
+  ]
+}
+''');
+
+      // The audio endpoint is of whichever kind this platform provides, and the
+      // host names it either way.
+      final audioName = Platform.isWindows
+          ? 'oak-e2e-bulk-${DateTime.now().microsecondsSinceEpoch}'
+          : '${directory.path}/audio.sock';
+
+      final relay = await Relay.spawn(station!, arguments: <String>[
+        '--search-root',
+        directory.path,
+        '--probe-profile',
+        profile.path,
+        '--bulk',
+        audioName,
+      ]);
+      addTearDown(relay.dispose);
+
+      // The station accepts the audio endpoint before it serves control, so a
+      // host connects it first. That ordering is what keeps the station from
+      // waiting on a worker thread nothing could interrupt.
+      final audio = await _connectAudio(audioName);
+      addTearDown(audio.close);
+
+      await relay.negotiate();
+      final caps = await relay.capabilities();
+      expect(caps.bulk, isTrue);
+      expect(caps.classes, contains('engine.bulk.pcm'));
+
+      // The stand-in engine emits a banner the moment the relay hands it a
+      // sink, so bytes arriving here prove the whole path ran: engine, queue,
+      // pump, second transport, host.
+      final chunk = await audio.incoming.first.timeout(
+        const Duration(seconds: 10),
+      );
+      expect(utf8.decode(chunk), contains('OAK-AUDIO-BANNER'));
+
+      await relay.shutdown();
+    });
+
+    test('offers no audio channel when the profile declares no sink', () async {
+      final relay = await connected();
+      addTearDown(relay.dispose);
+
+      final caps = await relay.capabilities();
+      expect(caps.bulk, isFalse);
+      expect(caps.classes, isNot(contains('engine.bulk.pcm')));
     });
 
     test('refuses to serve two transports at once', () async {

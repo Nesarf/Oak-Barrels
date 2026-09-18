@@ -121,11 +121,32 @@ OAK_TEST(profile_parses_several_profiles_in_order) {
 OAK_TEST(profile_names_round_trip) {
   OAK_CHECK(roleFromName(roleName(Role::Post)) == Role::Post);
   OAK_CHECK(roleFromName(roleName(Role::Set)) == Role::Set);
+  OAK_CHECK(roleFromName(roleName(Role::Bulk)) == Role::Bulk);
   OAK_CHECK(symbolShapeFromName(symbolShapeName(SymbolShape::Level)) == SymbolShape::Level);
   OAK_CHECK(symbolShapeFromName(symbolShapeName(SymbolShape::Name)) == SymbolShape::Name);
+  OAK_CHECK(symbolShapeFromName(symbolShapeName(SymbolShape::Sink)) == SymbolShape::Sink);
 
   OAK_CHECK(!roleFromName("teleport").has_value());
   OAK_CHECK(!symbolShapeFromName("none").has_value());
+}
+
+OAK_TEST(profile_parses_the_audio_sink_binding) {
+  const auto profiles = parseProfiles(R"({
+    "profiles": [
+      {
+        "class": "engine.bulk.pcm",
+        "bindings": [
+          { "role": "bulk", "symbol": "some_register_symbol", "shape": "sink" }
+        ]
+      }
+    ]
+  })");
+  OAK_CHECK(profiles.has_value());
+
+  const auto* bulk = profiles->front().bindingFor(Role::Bulk);
+  OAK_CHECK(bulk != nullptr);
+  OAK_CHECK_EQ(bulk->symbol, std::string("some_register_symbol"));
+  OAK_CHECK(bulk->shape == SymbolShape::Sink);
 }
 
 OAK_TEST(profile_load_reports_a_file_it_cannot_read) {

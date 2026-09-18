@@ -107,7 +107,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   end to end: scan, recognise a container format, load, resolve, bind, call, and
   observe that the call landed. Nothing links the fixture, so the load path is
   genuinely exercised rather than bypassed by the linker.
-- **A named pipe transport for the Dart host**, reached through `dart:ffi` with
+- **The bulk audio channel of protocol section 7** (`src/relay/bulk/`), on a
+  second transport, declared as `engine.bulk.pcm`, and offered only while a
+  channel is genuinely running. The engine is handed a sink and calls it; the
+  sink returns how many bytes it took, never blocks, and never allocates,
+  because it runs on whatever thread the engine chose. What it refused is
+  counted rather than hidden.
+- The third calling shape, `sink`, which is the only one called *back*. The
+  vocabulary is still short enough to hold in your head: a value, a name, and
+  somewhere to put audio are the only things the protocol can actually deliver.
+- `--bulk <name>` on the station, for the endpoint a host nominates.
+- A bounded, lock-free single-producer queue, tested on its own because it is
+  the only thing an engine's audio thread ever touches.
+- A named pipe transport for the Dart host, reached through `dart:ffi` with
   no package added: the allocation and UTF-16 conversion that a helper package
   would supply are short against `LocalAlloc` and the fact that a Dart string is
   already UTF-16. Reading runs on its own isolate and asks whether data is
@@ -129,8 +141,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   description of its own. Until a profile says what to look for, no engine can
   be found -- deliberately, and that is axiom A2 talking rather than an
   unfinished stage.
-- TODO(protocol): the bulk audio channel of section 7, and nothing else. See
-  above for why it is a decision rather than an omission.
+- There is no outstanding protocol work. Section 7's channel was the last item,
+  and it needed no new revision: the `bulk` field and the `engine.bulk.pcm`
+  class name were already in `CAPS_REPLY`, so this work only gave them something
+  true to report.
 
 ## [0.1.0] - 2026-09-18
 

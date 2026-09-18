@@ -33,6 +33,15 @@ class EngineBackend {
   /// Whether a bulk audio channel could be negotiated on a second transport (section 7).
   virtual bool bulkChannel() const { return false; }
 
+  /// Bytes forwarded to the host over that channel, or 0 when there is none.
+  virtual std::uint64_t bulkBytesForwarded() const { return 0; }
+
+  /// Bytes an engine offered that did not fit the channel's queue.
+  ///
+  /// Counted rather than hidden: a nonzero value means the host stopped keeping
+  /// up, which is something an operator needs to be able to see.
+  virtual std::uint64_t bulkBytesDropped() const { return 0; }
+
   /// Opens a target and returns its handle, or 0 on failure.
   ///
   /// On failure `reason` receives the code to report. A successful handle must

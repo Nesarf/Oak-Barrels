@@ -23,6 +23,7 @@ add_executable(relay_tests
     test_scanner.cpp
     test_profile.cpp
     test_prober.cpp
+    test_bulk.cpp
     test_transport.cpp
     test_session.cpp
 )

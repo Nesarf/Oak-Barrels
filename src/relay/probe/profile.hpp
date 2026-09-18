@@ -31,11 +31,18 @@ namespace oak::relay::probe {
 ///
 /// There is deliberately no "takes nothing" shape. The vocabulary contains only
 /// the shapes the protocol can actually deliver -- POST carries a name, SET
-/// carries a value -- so a shape nothing can be called with is dead weight, and
-/// worse: a profile could ask for one and be accepted.
+/// carries a value, and the bulk channel needs somewhere to put audio -- so a
+/// shape nothing can be called with is dead weight, and worse: a profile could
+/// ask for one and be accepted.
 enum class SymbolShape {
   Level,  ///< void (*)(double)
   Name,   ///< void (*)(const char*)
+  /// void (*)(bulk::Sink, void*)
+  ///
+  /// The only shape that is called *back*. Installing a sink is what makes
+  /// section 7's channel reachable: the relay provides somewhere for audio to
+  /// go, and the engine decides when to send it.
+  Sink,
 };
 
 const char* symbolShapeName(SymbolShape shape);
@@ -45,6 +52,7 @@ std::optional<SymbolShape> symbolShapeFromName(const std::string& name);
 enum class Role {
   Post,  ///< POST: fire a named action at a target.
   Set,   ///< SET: set a continuous parameter.
+  Bulk,  ///< Install the audio sink of protocol section 7.
 };
 
 const char* roleName(Role role);

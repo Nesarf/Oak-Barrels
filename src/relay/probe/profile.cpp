@@ -13,9 +13,11 @@ using protocol::json::Value;
 
 constexpr const char* kPostRole = "post";
 constexpr const char* kSetRole = "set";
+constexpr const char* kBulkRole = "bulk";
 
 constexpr const char* kLevelShape = "level";
 constexpr const char* kNameShape = "name";
+constexpr const char* kSinkShape = "sink";
 
 }  // namespace
 
@@ -25,6 +27,8 @@ const char* symbolShapeName(SymbolShape shape) {
       return kLevelShape;
     case SymbolShape::Name:
       return kNameShape;
+    case SymbolShape::Sink:
+      return kSinkShape;
   }
   return "unknown";
 }
@@ -32,6 +36,7 @@ const char* symbolShapeName(SymbolShape shape) {
 std::optional<SymbolShape> symbolShapeFromName(const std::string& name) {
   if (name == kLevelShape) return SymbolShape::Level;
   if (name == kNameShape) return SymbolShape::Name;
+  if (name == kSinkShape) return SymbolShape::Sink;
   return std::nullopt;
 }
 
@@ -41,6 +46,8 @@ const char* roleName(Role role) {
       return kPostRole;
     case Role::Set:
       return kSetRole;
+    case Role::Bulk:
+      return kBulkRole;
   }
   return kPostRole;
 }
@@ -48,6 +55,7 @@ const char* roleName(Role role) {
 std::optional<Role> roleFromName(const std::string& name) {
   if (name == kPostRole) return Role::Post;
   if (name == kSetRole) return Role::Set;
+  if (name == kBulkRole) return Role::Bulk;
   return std::nullopt;
 }
 

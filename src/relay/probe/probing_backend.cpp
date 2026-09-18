@@ -6,13 +6,47 @@ namespace oak::relay::probe {
 
 ProbingBackend::ProbingBackend(std::vector<std::string> roots,
                                std::vector<Profile> profiles,
+                               std::unique_ptr<transport::Transport> audioEndpoint,
                                discovery::ScanLimits limits)
-    : roots_(std::move(roots)), profiles_(std::move(profiles)), limits_(limits) {}
+    : roots_(std::move(roots)),
+      profiles_(std::move(profiles)),
+      limits_(limits),
+      audioEndpoint_(std::move(audioEndpoint)) {}
+
+ProbingBackend::~ProbingBackend() { disposeBulk(); }
+
+void ProbingBackend::disposeBulk() const {
+  if (bulk_ == nullptr) return;
+
+  if (bulk_->stop()) {
+    bulk_.reset();
+    return;
+  }
+
+  // The worker is inside a write to a host that stopped reading, and nothing
+  // can interrupt it. Detaching was already done; freeing the channel now would
+  // free memory that thread may still touch, so it is released instead. A
+  // process on its way out leaking one queue is the smaller problem.
+  (void)bulk_.release();
+}
 
 const BindingAttempt& ProbingBackend::ensureProbed() const {
   if (!probed_) {
     scan_ = discovery::scanForCandidates(roots_, limits_);
     attempt_ = bindFirstAvailable(scan_.candidates, profiles_);
+
+    // The audio channel exists only when three things are true at once: the
+    // host asked for one, an engine was bound, and that engine's profile
+    // declares somewhere to put the audio. Any one of them missing means there
+    // is no channel, and the session is told so rather than left to discover it
+    // by failing.
+    if (audioEndpoint_ != nullptr && attempt_.engine.hasBinding(Role::Bulk)) {
+      bulk_ = std::make_unique<bulk::BulkChannel>(std::move(audioEndpoint_));
+      if (!attempt_.engine.installSink(bulk_->sink(), bulk_->context())) {
+        disposeBulk();
+      }
+    }
+
     probed_ = true;
   }
   return attempt_;
@@ -21,9 +55,14 @@ const BindingAttempt& ProbingBackend::ensureProbed() const {
 std::vector<std::string> ProbingBackend::capabilityClasses() const {
   const BindingAttempt& attempt = ensureProbed();
 
-  // Every class here was proved by resolving every symbol it names. Nothing
-  // else is offered: an unverified capability is an absent one (A5, section 10).
-  return attempt.engine.capabilityClasses();
+  // Every class here was proved by resolving every symbol it names, and the
+  // audio class was proved by a running channel. Nothing else is offered: an
+  // unverified capability is an absent one (A5, section 10).
+  std::vector<std::string> classes = attempt.engine.capabilityClasses();
+  if (bulk_ != nullptr) {
+    classes.emplace_back(kBulkCapabilityClass);
+  }
+  return classes;
 }
 
 protocol::json::Value ProbingBackend::limits() const {
@@ -33,6 +72,21 @@ protocol::json::Value ProbingBackend::limits() const {
   value.set("max_scan_depth",
             protocol::json::Value::integer(static_cast<std::int64_t>(limits_.maxDepth)));
   return value;
+}
+
+bool ProbingBackend::bulkChannel() const {
+  (void)ensureProbed();
+  return bulk_ != nullptr;
+}
+
+std::uint64_t ProbingBackend::bulkBytesForwarded() const {
+  (void)ensureProbed();
+  return bulk_ != nullptr ? bulk_->bytesForwarded() : 0;
+}
+
+std::uint64_t ProbingBackend::bulkBytesDropped() const {
+  (void)ensureProbed();
+  return bulk_ != nullptr ? bulk_->bytesDropped() : 0;
 }
 
 std::uint32_t ProbingBackend::openTarget(const std::string& /*kind*/,

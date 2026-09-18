@@ -41,6 +41,8 @@ endif()
 # configure-time dependency on somebody's SDK would defeat the whole point.
 # ---------------------------------------------------------------------------
 add_library(oak_barrels_core STATIC
+    src/relay/bulk/bulk_channel.cpp
+    src/relay/bulk/ring_buffer.cpp
     src/relay/binding/dynamic_library.cpp
     src/relay/discovery/module_format.cpp
     src/relay/discovery/scanner.cpp
@@ -59,8 +61,11 @@ target_include_directories(oak_barrels_core PUBLIC src)
 target_compile_features(oak_barrels_core PUBLIC cxx_std_17)
 
 # Resolving a symbol at run time is what this project does instead of linking,
-# so the platform's own loader is the one dependency it genuinely has.
-target_link_libraries(oak_barrels_core PUBLIC ${CMAKE_DL_LIBS})
+# so the platform's own loader is the one dependency it genuinely has. Threads
+# come with the audio channel, which needs one to drain a queue the engine
+# writes from its own thread.
+find_package(Threads REQUIRED)
+target_link_libraries(oak_barrels_core PUBLIC ${CMAKE_DL_LIBS} Threads::Threads)
 
 add_executable(oak-barrels src/relay/main.cpp)
 target_link_libraries(oak-barrels PRIVATE oak_barrels_core)

@@ -344,6 +344,11 @@ bool Session::handleDiagRequest(const Value& payload) {
   reply.set("candidates_found",
             Value::integer(static_cast<std::int64_t>(backend_.candidatesFound())));
   reply.set("discovery_truncated", Value::boolean(backend_.discoveryTruncated()));
+  reply.set("bulk", Value::boolean(backend_.bulkChannel()));
+  reply.set("bulk_bytes_forwarded",
+            Value::integer(static_cast<std::int64_t>(backend_.bulkBytesForwarded())));
+  reply.set("bulk_bytes_dropped",
+            Value::integer(static_cast<std::int64_t>(backend_.bulkBytesDropped())));
 
   std::vector<Value> classes;
   for (const std::string& name : backend_.capabilityClasses()) {

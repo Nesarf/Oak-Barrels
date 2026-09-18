@@ -14,6 +14,7 @@ namespace {
 // compiled in: the profile said what it is, and the profile came from the host.
 using LevelFunction = void (*)(double);
 using NameFunction = void (*)(const char*);
+using RegisterSinkFunction = void (*)(bulk::Sink, void*);
 
 }  // namespace
 
@@ -78,6 +79,14 @@ bool BoundEngine::callWithName(Role role, const std::string& name) const {
   if (address == nullptr) return false;
 
   reinterpret_cast<NameFunction>(address)(name.c_str());
+  return true;
+}
+
+bool BoundEngine::installSink(bulk::Sink sink, void* context) const {
+  void* address = addressFor(Role::Bulk, SymbolShape::Sink);
+  if (address == nullptr) return false;
+
+  reinterpret_cast<RegisterSinkFunction>(address)(sink, context);
   return true;
 }
 
