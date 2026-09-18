@@ -4,8 +4,8 @@ description: >-
   bridges to whatever audio engine is installed on the machine. Belongs to no
   vendor, links nothing at build time, and carries no version constants.
 version: 0.1.0
-repository: https://github.com/Nesarf/oak-barrels
-issue_tracker: https://github.com/Nesarf/oak-barrels/issues
+repository: https://github.com/Nesarf/Oak-Barrels
+issue_tracker: https://github.com/Nesarf/Oak-Barrels/issues
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -17,8 +17,10 @@ environment:
 # a usage pattern, not a requirement. Staying framework-free is also what lets
 # this package be tested with a plain `dart test`.
 dependencies:
-  # Intentionally empty. dart:io provides Socket, Process and stdio -- all three
-  # transports from the protocol specification.
+  # Intentionally empty. dart:io provides Socket, Process and the standard
+  # streams, and dart:ffi reaches the named pipe API that dart:io does not
+  # expose. All three transports of the protocol specification, and no package
+  # needed for any of them.
 
 dev_dependencies:
   test: ^1.25.0
