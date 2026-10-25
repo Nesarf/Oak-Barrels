@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   been publishing the whole C++ tree, and excluding it also cleared the two
   layout warnings about the plural `tests/` and `docs/` directories: the
   package now reports no warnings and a 33 KB archive instead of 99 KB.
+- A native coverage job, built with the compiler's own `--coverage` flag and
+  summarised with lcov, with the raw `coverage.info` kept as an artifact.
 
 ### Changed
 
@@ -45,6 +47,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   quietly producing a Debug binary with no tests to run.
 - The README says how to run the reference host against a directory, and what
   nominating a search root changes in the diagnostic report.
+- The build jobs cache their build tree and the Dart package cache, keyed on
+  the sources and the architecture, so a repeat run recompiles less and one
+  architecture never reuses another's object files.
 
 ## [0.2.0] - 2026-10-25
 

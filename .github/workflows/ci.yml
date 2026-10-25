@@ -164,6 +164,20 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # What is slow here is compiling the station, so the key carries the
+      # sources: a cache hit restores objects that would have been rebuilt the
+      # same way. The architecture is in the key because object files are not
+      # portable between them.
+      - name: Cache the build tree and the Dart package cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            build
+            .pub-cache
+          key: ${{ runner.os }}-${{ runner.arch }}-native-${{ hashFiles('src/**', 'tests/**', 'CMakeLists.txt', 'pubspec.yaml', 'pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-native-
+
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
@@ -216,6 +230,43 @@ jobs:
           # already in an unknown state.
           UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
         run: ctest --test-dir build-sanitize --output-on-failure
+
+  coverage:
+    name: Native line coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install lcov
+        run: sudo apt-get update && sudo apt-get install -y lcov
+
+      # --coverage is the compiler's own flag: it writes the notes gcov reads,
+      # so what is measured is the code the tests reached, not what was
+      # compiled. -O0 keeps the line numbers honest.
+      - name: Configure
+        run: |
+          cmake -S . -B build-cov -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="--coverage -O0 -g"
+
+      - name: Build
+        run: cmake --build build-cov --parallel
+
+      - name: Native tests
+        run: ctest --test-dir build-cov --output-on-failure
+
+      - name: Collect
+        run: |
+          set -euo pipefail
+          lcov --capture --directory build-cov --output-file coverage.info \
+            --ignore-errors mismatch,source
+          lcov --remove coverage.info '/usr/*' '*/tests/*' \
+            --output-file coverage.info --ignore-errors unused
+          lcov --summary coverage.info
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: native-coverage
+          path: coverage.info
 
   package:
     name: Release package (${{ matrix.os }})
@@ -286,6 +337,13 @@ jobs:
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
+      - name: Cache the Dart package cache
+        uses: actions/cache@v6
+        with:
+          path: .pub-cache
+          key: ${{ runner.os }}-dart-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-dart-
       - name: Resolve dependencies
         run: dart pub get
       - name: Verify formatting
