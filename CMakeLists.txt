@@ -103,6 +103,10 @@ endif()
 include(GNUInstallDirs)
 install(TARGETS oak-barrels RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
+# Whoever opens the archive is deciding whether to trust what is inside it, so
+# the two files that answer that question travel with the binary.
+install(FILES README.md LICENSE DESTINATION ${CMAKE_INSTALL_DOCDIR})
+
 # ---------------------------------------------------------------------------
 # Packages
 #
