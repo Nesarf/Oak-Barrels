@@ -219,9 +219,10 @@ jobs:
 
   package:
     name: Release package (${{ matrix.os }})
-    # A package is for a release, so it is built on demand against an existing
-    # tag: the archive then holds the sources that tag names, whatever main has
-    # become since. CPack picks the archive format per platform.
+    # A package is built on demand and attached to a release. It is built from
+    # the dispatched ref rather than from the tag, because v0.2.0 was tagged
+    # before this job existed and so carries no packaging configuration of its
+    # own. Every tag cut from here on does, and then the two are one tree.
     if: github.event_name == 'workflow_dispatch' && inputs.release_tag != ''
     runs-on: ${{ matrix.os }}
     permissions:
@@ -235,8 +236,6 @@ jobs:
           - os: windows-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.release_tag }}
 
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
