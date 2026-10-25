@@ -164,7 +164,7 @@ class Relay {
 
   Future<Frame> _request(Frame request, Duration timeout) async {
     if (_failure != null) throw _failure!;
-    if (_failure == null && _subscription.isPaused) {
+    if (_subscription.isPaused) {
       throw const RelayClosed('the relay channel is not readable');
     }
 
