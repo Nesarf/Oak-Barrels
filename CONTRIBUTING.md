@@ -11,11 +11,15 @@ build dependencies**, by design -- it links no vendor SDK at build time.
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build
+cmake --build build --config Release
 
 dart pub get
 dart test
 ```
+
+`--config` is ignored by single-config generators and required by the
+multi-config one Windows uses by default, so the same line builds everywhere
+CI runs.
 
 If a change you are making would require reading a vendor SDK path at configure
 time, stop and open an issue first. That is a design regression, not a feature.

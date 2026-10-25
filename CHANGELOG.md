@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The README says how to get a binary without a toolchain, and the packaging
   job lists the release assets before and after uploading, so a replaced
   archive is a line in the log rather than something to infer from a count.
+- The build commands in the README and CONTRIBUTING carry `--config Release`,
+  so the same lines build on the generator Windows uses by default instead of
+  quietly producing a Debug binary with no tests to run.
 
 ## [0.2.0] - 2026-10-25
 

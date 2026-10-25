@@ -212,9 +212,13 @@ SDK path, because it does not link a vendor SDK.
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build
-ctest --test-dir build --output-on-failure
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
 ```
+
+`--config` and `-C` are ignored by single-config generators and required by the
+multi-config one Windows uses by default, so the same three lines work on every
+platform the CI matrix covers.
 
 The host-side client is pure Dart and needs no native toolchain:
 
