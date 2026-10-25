@@ -3,7 +3,7 @@ description: >-
   A neutral relay client. Speaks a local pipe protocol to a relay station that
   bridges to whatever audio engine is installed on the machine. Belongs to no
   vendor, links nothing at build time, and carries no version constants.
-version: 0.2.0
+version: 0.3.0
 repository: https://github.com/Nesarf/Oak-Barrels
 issue_tracker: https://github.com/Nesarf/Oak-Barrels/issues
 

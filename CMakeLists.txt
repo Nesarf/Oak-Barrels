@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(oak_barrels
-    VERSION 0.2.0
+    VERSION 0.3.0
     DESCRIPTION "A neutral relay between hosts and whatever audio engine is installed"
     LANGUAGES CXX)
 
