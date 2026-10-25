@@ -257,8 +257,26 @@ jobs:
             echo "no package was produced"
             exit 1
           fi
-          gh release upload "${{ inputs.release_tag }}" $files \
-            --repo "${{ github.repository }}" --clobber
+          tag="${{ inputs.release_tag }}"
+          repo="${{ github.repository }}"
+
+          # Two jobs in this matrix can produce the same archive name, and one
+          # duplicate went unnoticed exactly that way. Listing the assets before
+          # and after makes a replacement a line in the log rather than a
+          # surprise, without changing what --clobber is allowed to do.
+          echo "== assets already on the release =="
+          gh release view "$tag" --repo "$repo" --json assets \
+            --jq '.assets[] | "\(.name) \(.size) bytes"'
+
+          echo "== uploading =="
+          for f in $files; do
+            echo "$(basename "$f") $(wc -c < "$f") bytes"
+          done
+          gh release upload "$tag" $files --repo "$repo" --clobber
+
+          echo "== assets after upload =="
+          gh release view "$tag" --repo "$repo" --json assets \
+            --jq '.assets[] | "\(.name) \(.size) bytes"'
 
   dart:
     name: Dart client

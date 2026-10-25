@@ -135,6 +135,8 @@ over-claiming that protocol section 10 forbids.
 | Reference host example | [x] |
 | Named pipe client for the Dart host | [x] via dart:ffi, with no package added |
 | Bulk audio channel (protocol section 7) | [x] a second transport, with a sink installed into the engine |
+| Builds and tests on Linux, macOS and Windows | [x] one CI matrix, plus a job under ASan and UBSan |
+| Packages attached to each release | [x] unzip and run, no toolchain required |
 
 ## Telling a station what to do
 
@@ -178,6 +180,30 @@ await relay.shutdown();
 
 The wire protocol is the authority, not this snippet -- see
 [`docs/RELAY_PROTOCOL.md`](docs/RELAY_PROTOCOL.md).
+
+## Getting a binary
+
+Every release carries a prebuilt station for each platform, so trying the
+relay does not require a C++ toolchain. The archives are named
+`oak-barrels-<version>-<system>-<arch>`:
+
+| Package suffix | Platform |
+| --- | --- |
+| `Linux-x86_64.tar.gz` | Linux, x86-64 |
+| `Darwin-arm64.tar.gz` | macOS, Apple silicon |
+| `Windows-AMD64.zip` | Windows, x64 |
+
+Unpack one and ask it its own version:
+
+```bash
+tar -xzf oak-barrels-*.tar.gz
+./bin/oak-barrels --version
+```
+
+An archive holds the binary, the readme and the licence, and nothing else. The
+station knows no engine and ships no third-party code: what it can do is
+decided at run time, from what the host tells it. Building from source remains
+the way to get a binary for a platform nobody has packaged yet.
 
 ## Building
 
