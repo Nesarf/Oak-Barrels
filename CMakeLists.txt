@@ -102,3 +102,25 @@ endif()
 # ---------------------------------------------------------------------------
 include(GNUInstallDirs)
 install(TARGETS oak-barrels RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# ---------------------------------------------------------------------------
+# Packages
+#
+# A host that wants to try the relay should not have to own a C++ toolchain
+# first. CPack is part of CMake, so this adds no dependency, and the generator
+# follows the platform: ZIP where that is the native habit, TGZ everywhere else.
+# The package holds the station and nothing else -- it is not a redistribution
+# channel, and ships no third-party binary.
+# ---------------------------------------------------------------------------
+set(CPACK_PACKAGE_NAME "oak-barrels")
+set(CPACK_PACKAGE_VENDOR "Oak Barrels contributors")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
+    "A neutral relay between a host application and an installed audio engine")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_FILE_NAME
+    "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
+set(CPACK_GENERATOR "TGZ")
+if(WIN32)
+    set(CPACK_GENERATOR "ZIP")
+endif()
+include(CPack)

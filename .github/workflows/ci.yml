@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing tag to attach packages to, for example v0.2.0"
+        required: false
+        default: ""
 
 env:
   PUB_CACHE: ${{ github.workspace }}/.pub-cache
@@ -211,6 +216,50 @@ jobs:
           # already in an unknown state.
           UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
         run: ctest --test-dir build-sanitize --output-on-failure
+
+  package:
+    name: Release package (${{ matrix.os }})
+    # A package is for a release, so it is built on demand against an existing
+    # tag: the archive then holds the sources that tag names, whatever main has
+    # become since. CPack picks the archive format per platform.
+    if: github.event_name == 'workflow_dispatch' && inputs.release_tag != ''
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: macos-latest
+          - os: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.release_tag }}
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel --config Release
+
+      - name: Package
+        run: cpack --config build/CPackConfig.cmake -C Release -B build
+
+      - name: Attach to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          files=$(ls build/oak-barrels-*.zip build/oak-barrels-*.tar.gz 2>/dev/null || true)
+          if [ -z "$files" ]; then
+            echo "no package was produced"
+            exit 1
+          fi
+          gh release upload "${{ inputs.release_tag }}" $files \
+            --repo "${{ github.repository }}" --clobber
 
   dart:
     name: Dart client
