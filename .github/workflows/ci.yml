@@ -14,7 +14,7 @@ jobs:
     name: Repository hygiene (neutrality guards)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: No third-party SDK content
         run: |
@@ -125,7 +125,7 @@ jobs:
     name: Protocol document
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Spec is present and non-trivial
         run: |
           set -euo pipefail
@@ -136,21 +136,35 @@ jobs:
           [ "$lines" -gt 100 ] || { echo "::error::Protocol spec looks truncated"; exit 1; }
 
   native:
-    name: Relay station (native build, unit and end-to-end)
-    runs-on: ubuntu-latest
+    name: Relay station (${{ matrix.os }}, native build, unit and end-to-end)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # One platform failing should still tell us about the other: which code
+      # paths compile where is the whole point of this job.
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            station: build/oak-barrels
+          - os: windows-latest
+            # The default generator on Windows is multi-config, so the binary
+            # lands under Release/ rather than at the build root.
+            station: build/Release/oak-barrels.exe
     env:
       PUB_CACHE: ${{ github.workspace }}/.pub-cache
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
+      # --config is ignored by single-config generators and required by
+      # multi-config ones, so one command covers both.
       - name: Build
-        run: cmake --build build --parallel
+        run: cmake --build build --parallel --config Release
 
       - name: Native tests
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build -C Release --output-on-failure
 
       - uses: dart-lang/setup-dart@v1
         with:
@@ -163,14 +177,14 @@ jobs:
       # Here one has, so point it at the binary and the tests actually run.
       - name: End to end, host process to station process
         env:
-          OAK_BARRELS_STATION: ${{ github.workspace }}/build/oak-barrels
+          OAK_BARRELS_STATION: ${{ github.workspace }}/${{ matrix.station }}
         run: dart test test/end_to_end_test.dart
 
   dart:
     name: Dart client
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
