@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `MSG_NOSIGNAL` is absent.
 - A native test job under AddressSanitizer and UndefinedBehaviorSanitizer, with
   leak detection on and undefined behaviour halting at its first report.
+- `docs/CONFORMANCE.md`, a map from each clause of protocol section 11 to the
+  test that checks it. Writing it found a gap: the rule that a relay refuses a
+  second concurrent session had no end-to-end case, which it now does.
 
 ### Changed
 

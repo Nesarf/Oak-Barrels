@@ -380,6 +380,46 @@ void main() {
       expect(result.exitCode, 2);
     });
 
+    test('refuses a second connection on the same endpoint', () async {
+      if (Platform.isWindows) return;
+
+      // Section 2: one relay instance serves exactly one host connection, and
+      // a second is refused rather than queued. The listener is closed as soon
+      // as the first peer arrives, so the path remains but nothing is listening
+      // on it any more.
+      final directory = Directory.systemTemp.createTempSync('oak-e2e-second-');
+      addTearDown(() {
+        if (directory.existsSync()) directory.deleteSync(recursive: true);
+      });
+      final socketPath = '${directory.path}/station.sock';
+
+      final process = await Process.start(
+        station!,
+        <String>['--listen', socketPath],
+      );
+      addTearDown(process.kill);
+
+      final deadline = DateTime.now().add(const Duration(seconds: 15));
+      while (!File(socketPath).existsSync()) {
+        if (DateTime.now().isAfter(deadline)) {
+          fail('the station never created its socket');
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+
+      final relay = await Relay.attach(
+        await UnixSocketTransport.connect(socketPath),
+      );
+      expect(await relay.negotiate(), 1);
+
+      await expectLater(
+        UnixSocketTransport.connect(socketPath),
+        throwsA(isA<SocketException>()),
+      );
+
+      await relay.shutdown();
+    });
+
     test('rejects an argument it does not understand', () async {
       final result = await Process.run(station!, <String>['--frobnicate']);
       expect(result.exitCode, 2);

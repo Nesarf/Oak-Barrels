@@ -384,6 +384,9 @@ A conforming host:
 3. Never sends a path expecting the relay to persist it.
 4. Opts into diagnostics explicitly if it wants them.
 
+Where each of these clauses is checked, by name, is in
+[`CONFORMANCE.md`](CONFORMANCE.md).
+
 ---
 
 ## Appendix A -- Why length-prefixed frames rather than line-delimited JSON
