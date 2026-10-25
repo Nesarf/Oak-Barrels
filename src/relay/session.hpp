@@ -7,8 +7,10 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "relay/backend.hpp"
@@ -44,10 +46,20 @@ class MemorySink final : public FrameSink {
   std::vector<std::vector<std::uint8_t>> written_;
 };
 
+/// Writes one line of transcript somewhere a developer can see it.
+///
+/// Injected rather than hardwired to a stream, so a test can assert on the
+/// transcript without capturing standard error.
+using TranscriptSink = std::function<void(std::string_view)>;
+
 /// Drives one session's protocol state machine.
 class Session {
  public:
-  Session(EngineBackend& backend, FrameSink& sink);
+  /// [transcript] is called once per frame in each direction when it is set.
+  ///
+  /// Leaving it empty is the normal case: the session then behaves byte for
+  /// byte as it did before the option existed.
+  Session(EngineBackend& backend, FrameSink& sink, TranscriptSink transcript = {});
 
   Session(const Session&) = delete;
   Session& operator=(const Session&) = delete;
@@ -80,8 +92,15 @@ class Session {
   void sendError(protocol::Reason reason);
   void sendStatus(std::uint32_t handle, protocol::Reason reason);
 
+  /// Writes one transcript line, when a transcript sink is installed.
+  ///
+  /// [direction] is `<` for a frame that arrived and `>` for one that left.
+  void transcribe(char direction, protocol::MessageType type,
+                  const std::string& payload);
+
   EngineBackend& backend_;
   FrameSink& sink_;
+  TranscriptSink transcript_;
 
   bool finished_ = false;
   bool negotiated_ = false;

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -521,4 +522,33 @@ OAK_TEST(session_never_names_a_vendor_or_version_in_a_reason) {
     // No dotted numeric components, which is how a version would look.
     OAK_CHECK(text.find('.') == std::string::npos);
   }
+}
+
+OAK_TEST(session_writes_a_transcript_of_both_directions) {
+  FakeBackend backend;
+  MemorySink sink;
+
+  // Off by default: the session answers as it always did, and nothing is
+  // written anywhere but the sink.
+  Session quiet{backend, sink};
+  OAK_CHECK(quiet.handle(makeFrame(MessageType::Hello, R"({"revisions":[1]})")));
+
+  std::vector<std::string> lines;
+  Session talkative{
+      backend, sink,
+      [&lines](std::string_view line) { lines.emplace_back(line); }};
+  OAK_CHECK(
+      talkative.handle(makeFrame(MessageType::Hello, R"({"revisions":[1]})")));
+
+  // One line per frame: the one that arrived, then the reply. A transcript of
+  // the conversation rather than of one side of it.
+  OAK_CHECK_EQ(lines.size(), 2u);
+  OAK_CHECK(lines[0].rfind("< HELLO ", 0) == 0u);
+  OAK_CHECK(lines[1].rfind("> HELLO_ACK ", 0) == 0u);
+
+  // And the transcript is an observer: the bytes on the wire are the same with
+  // it installed as without it.
+  OAK_CHECK_EQ(sink.frames().size(), 2u);
+  OAK_CHECK(sink.frames()[0].type == MessageType::HelloAck);
+  OAK_CHECK(sink.frames()[1].type == MessageType::HelloAck);
 }

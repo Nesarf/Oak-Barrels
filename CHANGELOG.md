@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/CONFORMANCE.md`, a map from each clause of protocol section 11 to the
   test that checks it. Writing it found a gap: the rule that a relay refuses a
   second concurrent session had no end-to-end case, which it now does.
+- `--debug-text`, which writes one line per frame to standard error. It is a
+  development aid and not part of the protocol: it changes no byte on the pipe,
+  and the transcript is an injected sink, so a test can read it without
+  capturing a stream.
 
 ### Changed
 

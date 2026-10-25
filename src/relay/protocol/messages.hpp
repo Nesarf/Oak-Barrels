@@ -54,6 +54,43 @@ inline bool isKnownMessageType(std::uint8_t raw) {
   return false;
 }
 
+/// The name this revision gives [type], as section 3.1 spells it.
+///
+/// For transcripts and test failures only: no name here reaches the wire.
+inline const char* messageTypeName(MessageType type) {
+  switch (type) {
+    case MessageType::Hello:
+      return "HELLO";
+    case MessageType::HelloAck:
+      return "HELLO_ACK";
+    case MessageType::CapsRequest:
+      return "CAPS_REQUEST";
+    case MessageType::CapsReply:
+      return "CAPS_REPLY";
+    case MessageType::Open:
+      return "OPEN";
+    case MessageType::OpenAck:
+      return "OPEN_ACK";
+    case MessageType::Post:
+      return "POST";
+    case MessageType::Set:
+      return "SET";
+    case MessageType::Close:
+      return "CLOSE";
+    case MessageType::Status:
+      return "STATUS";
+    case MessageType::DiagRequest:
+      return "DIAG_REQUEST";
+    case MessageType::DiagReply:
+      return "DIAG_REPLY";
+    case MessageType::Bye:
+      return "BYE";
+    case MessageType::Error:
+      return "ERROR";
+  }
+  return "UNKNOWN";
+}
+
 /// Failure reason codes, per protocol section 6.
 ///
 /// A reason code is the only thing the relay says about a failure. It must

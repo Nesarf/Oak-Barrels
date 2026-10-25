@@ -24,6 +24,7 @@
 #include <cstdio>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -69,6 +70,9 @@ const char* kUsage =
     "                       names come from that file and never from this\n"
     "                       build, which is how the station can bind an\n"
     "                       engine it has never heard of.\n"
+    "  --debug-text         write a one-line transcript of every frame to\n"
+    "                       standard error. A development aid: it changes no\n"
+    "                       byte on the pipe and is not part of the protocol.\n"
     "\n"
     "The control channel carries frames and nothing else. Diagnostics go to\n"
     "standard error, which is never part of the protocol.\n";
@@ -120,6 +124,7 @@ std::unique_ptr<oak::relay::transport::Transport> openEndpoint(const std::string
 int main(int argc, char** argv) {
   std::vector<std::string> searchRoots;
   std::string profilePath;
+  bool debugText = false;
   std::string listenPath;
   std::string pipeName;
   std::string bulkName;
@@ -134,6 +139,10 @@ int main(int argc, char** argv) {
     if (argument == "--version") {
       std::fprintf(stdout, "oak-barrels %s\n", OAK_BARRELS_VERSION);
       return 0;
+    }
+    if (argument == "--debug-text") {
+      debugText = true;
+      continue;
     }
     if (argument == "--search-root" || argument == "--probe-profile" ||
         argument == "--listen" || argument == "--pipe" || argument == "--bulk") {
@@ -220,7 +229,18 @@ int main(int argc, char** argv) {
         std::move(searchRoots), std::move(profiles), std::move(audioEndpoint));
   }
 
-  oak::relay::Session session(*backend, sink);
+  // The transcript goes to standard error, which is never part of the protocol,
+  // and only when the host asked for it. Nothing about the control channel
+  // changes when the flag is absent.
+  oak::relay::TranscriptSink transcript;
+  if (debugText) {
+    transcript = [](std::string_view line) {
+      std::fprintf(stderr, "oak-barrels: %.*s\n", static_cast<int>(line.size()),
+                   line.data());
+    };
+  }
+
+  oak::relay::Session session(*backend, sink, std::move(transcript));
 
   oak::relay::protocol::FrameDecoder decoder;
   std::vector<std::uint8_t> buffer(oak::relay::transport::kMaxIoChunk);

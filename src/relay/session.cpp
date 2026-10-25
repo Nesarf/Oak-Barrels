@@ -1,5 +1,6 @@
 #include "relay/session.hpp"
 
+#include <string>
 #include <utility>
 
 namespace oak::relay {
@@ -73,11 +74,30 @@ std::vector<protocol::Frame> MemorySink::frames() const {
 
 // --------------------------------------------------------------------- Session
 
-Session::Session(EngineBackend& backend, FrameSink& sink)
-    : backend_(backend), sink_(sink) {}
+Session::Session(EngineBackend& backend, FrameSink& sink, TranscriptSink transcript)
+    : backend_(backend), sink_(sink), transcript_(std::move(transcript)) {}
 
 void Session::send(MessageType type, const std::string& payloadJson) {
+  transcribe('>', type, payloadJson);
   (void)sink_.writeFrame(protocol::encodeFrame(type, payloadJson));
+}
+
+void Session::transcribe(char direction, MessageType type,
+                         const std::string& payload) {
+  if (!transcript_) return;
+
+  // One line per frame: direction, name, payload. The payload is the JSON the
+  // session already had, so a transcript shows exactly what crossed the pipe
+  // rather than a reconstruction of it.
+  std::string line;
+  line.push_back(direction);
+  line.push_back(' ');
+  line.append(protocol::messageTypeName(type));
+  if (!payload.empty()) {
+    line.push_back(' ');
+    line.append(payload);
+  }
+  transcript_(line);
 }
 
 void Session::sendError(Reason reason) {
@@ -98,6 +118,8 @@ void Session::sendStatus(std::uint32_t handle, Reason reason) {
 
 bool Session::handle(const protocol::Frame& frame) {
   if (finished_) return false;
+
+  transcribe('<', frame.type, frame.payload);
 
   // BYE is acceptable at any point, including mid-negotiation.
   if (frame.type == MessageType::Bye) {

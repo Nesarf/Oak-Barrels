@@ -398,6 +398,8 @@ chosen anyway because:
 - a single malformed frame must be detectable without scanning for a delimiter,
 - a future binary encoding can be negotiated without changing the transport.
 
-A `--debug-text` mode may wrap frames in a human-readable transcript for
-authoring purposes. That mode is a development aid and is not part of the
-protocol.
+A `--debug-text` mode wraps frames in a human-readable transcript for authoring
+purposes: one line per frame, `<` for a frame that arrived and `>` for one that
+left, written to standard error. That mode is a development aid and is not part
+of the protocol. It changes no byte on the pipe, and a host that never asks for
+it cannot tell the difference.
