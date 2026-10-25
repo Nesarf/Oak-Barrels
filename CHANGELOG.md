@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   development aid and not part of the protocol: it changes no byte on the pipe,
   and the transcript is an injected sink, so a test can read it without
   capturing a stream.
+- `.pubignore`, so the Dart package carries only the client. The dry run had
+  been publishing the whole C++ tree, and excluding it also cleared the two
+  layout warnings about the plural `tests/` and `docs/` directories: the
+  package now reports no warnings and a 33 KB archive instead of 99 KB.
 
 ### Changed
 
@@ -39,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The build commands in the README and CONTRIBUTING carry `--config Release`,
   so the same lines build on the generator Windows uses by default instead of
   quietly producing a Debug binary with no tests to run.
+- The README says how to run the reference host against a directory, and what
+  nominating a search root changes in the diagnostic report.
 
 ## [0.2.0] - 2026-10-25
 

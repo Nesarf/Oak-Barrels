@@ -229,6 +229,29 @@ dart pub get
 dart test
 ```
 
+## Trying it
+
+`example/reference_host.dart` is a runnable host: it walks negotiate,
+capabilities, open, diagnostics and shutdown, and prints what it learned at each
+step. Point it at a station you built:
+
+```bash
+dart run example/reference_host.dart ./build/oak-barrels
+```
+
+With no search root the station examines nothing, offers no classes and refuses
+every target with `NO_ENGINE`. Nominate a directory and it looks only there:
+
+```bash
+dart run example/reference_host.dart ./build/oak-barrels --search-root ./build
+```
+
+The diagnostic report then shows both counters non-zero: how many files were
+examined, and how many of them looked like loadable modules. The class list
+stays empty either way, because recognising a container format is not knowing a
+calling convention -- a class is offered only once a probe profile names the
+symbols to resolve.
+
 ## Non-goals
 
 - Reimplementing an audio engine. The relay carries instructions, it does not

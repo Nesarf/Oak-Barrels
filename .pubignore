@@ -1,0 +1,12 @@
+# The repository is a C++ project that also carries a Dart package. Only the
+# package belongs in a published archive: the station, the native tests and the
+# build files are for people building the station, not for consumers of the
+# client. Without this file the whole tree is published, which is how the dry
+# run came to contain CMakeLists.txt and sixteen C++ sources.
+/CMakeLists.txt
+/src/
+/tests/
+/docs/
+/tool/
+/analysis_options.yaml
+/build/
