@@ -200,10 +200,11 @@ tar -xzf oak-barrels-*.tar.gz
 ./bin/oak-barrels --version
 ```
 
-An archive holds the binary, the readme and the licence, and nothing else. The
-station knows no engine and ships no third-party code: what it can do is
-decided at run time, from what the host tells it. Building from source remains
-the way to get a binary for a platform nobody has packaged yet.
+An archive holds the binary in `bin/`, the readme and the licence in
+`share/doc/oak_barrels/`, and nothing else. The station knows no engine and
+ships no third-party code: what it can do is decided at run time, from what the
+host tells it. Building from source remains the way to get a binary for a
+platform nobody has packaged yet.
 
 ## Building
 
