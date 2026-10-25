@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Packages** (`cpack`), built by a dispatchable CI job on Linux, macOS and
+  Windows and attached to a release: unzip and run, no toolchain required.
+  CPack is part of CMake, so this adds no dependency, and the archive holds the
+  station and nothing else.
+- The native job builds and tests on Windows and macOS as well as Linux, so the
+  named-pipe transport, the wide-string helper and the MSVC branches are finally
+  covered. The macOS build is also the first to compile the send path where
+  `MSG_NOSIGNAL` is absent.
+- A native test job under AddressSanitizer and UndefinedBehaviorSanitizer, with
+  leak detection on and undefined behaviour halting at its first report.
+
+### Changed
+
+- `actions/checkout` moves to v7, which clears the Node 20 deprecation
+  annotation every run had been carrying.
+
 ## [0.2.0] - 2026-10-25
 
 ### Changed
