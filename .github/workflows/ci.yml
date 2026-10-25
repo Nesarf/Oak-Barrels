@@ -184,6 +184,34 @@ jobs:
           OAK_BARRELS_STATION: ${{ github.workspace }}/${{ matrix.station }}
         run: dart test test/end_to_end_test.dart
 
+  sanitizer:
+    name: Native tests under ASan and UBSan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Address and undefined behaviour together, built from the same sources
+      # the matrix builds: the suite loads a shared object at run time, resolves
+      # symbols out of it and drives a callback the engine would call on its
+      # audio thread. A plain Release build cannot see a mistake in any of that.
+      - name: Configure
+        run: |
+          cmake -S . -B build-sanitize -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+
+      - name: Build
+        run: cmake --build build-sanitize --parallel
+
+      - name: Native tests
+        env:
+          ASAN_OPTIONS: detect_leaks=1
+          # Report the stack for the first violation and stop there: a run that
+          # continues past undefined behaviour describes a machine that is
+          # already in an unknown state.
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: ctest --test-dir build-sanitize --output-on-failure
+
   dart:
     name: Dart client
     runs-on: ubuntu-latest
