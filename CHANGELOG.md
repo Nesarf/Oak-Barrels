@@ -12,7 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Packages** (`cpack`), built by a dispatchable CI job on Linux, macOS and
   Windows and attached to a release: unzip and run, no toolchain required.
   CPack is part of CMake, so this adds no dependency, and the archive holds the
-  station and nothing else.
+  station, the readme and the licence. The macOS package is arm64, because
+  that is what the hosted macOS runners report; a second run aimed at x64
+  produced the same archive name, so there is one macOS package, not two.
 - The native job builds and tests on Windows and macOS as well as Linux, so the
   named-pipe transport, the wide-string helper and the MSVC branches are finally
   covered. The macOS build is also the first to compile the send path where

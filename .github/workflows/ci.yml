@@ -233,9 +233,6 @@ jobs:
         include:
           - os: ubuntu-latest
           - os: macos-latest
-          # macos-latest is arm64 now, and Intel Macs still exist. GitHub keeps
-          # an x64 image for them, so both architectures get a package.
-          - os: macos-15
           - os: windows-latest
     steps:
       - uses: actions/checkout@v7
