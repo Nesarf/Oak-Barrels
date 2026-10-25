@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `docs/RELEASING.md` gains the step its first real run taught us: a tag and a
+  release are two different things, and the packages attach to the release.
+  Three package jobs reported "release not found" before that.
+
 ## [0.3.0] - 2026-10-25
 
 ### Added

@@ -48,7 +48,16 @@ git push origin vx.y.z
 The tag is annotated: it carries who cut the release and when, which a
 lightweight tag does not.
 
-## 5. Build the packages onto the release
+## 5. Create the release, then build the packages onto it
+
+A tag and a release are two different things. `gh release upload` attaches to
+the release, and a tag on its own has none. Create the release first, with the
+changelog section as its notes:
+
+```bash
+gh release create vx.y.z --repo Nesarf/Oak-Barrels \
+  --title "oak_barrels x.y.z" --notes-file release-notes.md
+```
 
 The `package` job only runs on `workflow_dispatch`, so an ordinary push never
 publishes anything. Start it by hand, naming the tag it should attach to:
@@ -81,3 +90,6 @@ number from step 2.
 - Do not fold unrelated edits into the release commit. The version bump is a
   three-line change, and keeping it that way is what makes it readable a year
   later.
+- Do not assume a tag is a release. The first run through this document pushed
+  the tag and started the packages, and all three jobs reported "release not
+  found", because there was nothing to attach them to.
