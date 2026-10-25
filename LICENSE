@@ -34,8 +34,8 @@ such component is distributed with, vendored into, or required at build time by
 this project.
 
 Users are solely responsible for determining whether their use of any
-third-party component — including the redistribution of that component's
-runtime libraries inside a shipped application — is permitted under the terms
+third-party component -- including the redistribution of that component's
+runtime libraries inside a shipped application -- is permitted under the terms
 they agreed to.
 
 This document is not legal advice.

@@ -52,6 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `src/relay/` with `protocol/`, `transport/`, `discovery/` and `binding/`
   subdivisions matching the five lifecycle stages.
 
+- The host client's request path no longer repeats a null check that its own
+  preceding failure branch has already ruled out. Behaviour is unchanged: the
+  second test could never have been reached with a null failure.
+
 ### Added
 
 - `docs/RELAY_PROTOCOL.md` -- the normative relay protocol: framing, transport
@@ -65,7 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   protocol.
 - `Relay.diagnostics()` on the host client, so the diagnostics switch of
   protocol section 8 is reachable and not merely specified.
-- Native test suite (`tests/`, 85 cases) covering the frame codec, the JSON
+- Native test suite (`tests/`, 118 cases) covering the frame codec, the JSON
   type, module identification, the scanner, and every session rule, alongside
   the Dart suite.
 - An end-to-end suite that spawns the real station binary and speaks the real
@@ -126,6 +130,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   waiting rather than sitting in a blocking read, because a worker blocked
   inside a system call cannot be killed and a read issued before the far end has
   finished connecting fails instead of waiting.
+
+### Fixed
+
+- `LICENSE` and `.gitattributes` carried an em dash, which the ASCII rule in
+  `CONTRIBUTING.md` requires to be written `--`. The hygiene scan selects files
+  by extension and neither file has one, so both had escaped it. The text is
+  corrected, and the scan now names the two files explicitly, which is what
+  makes the rule's "every file in the repository" claim true rather than
+  nearly true.
 
 ### Removed
 

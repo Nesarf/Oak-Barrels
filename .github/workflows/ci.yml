@@ -106,8 +106,12 @@ jobs:
           #
           # Unlike the version and path scans, CONTRIBUTING.md gets no exemption
           # here: illustrating a forbidden form never requires a non-ASCII byte.
+          # LICENSE and .gitattributes are named explicitly because neither has
+          # an extension for the globs above to match, and the rule in
+          # CONTRIBUTING.md covers every file in the repository.
           files=$(git ls-files '*.md' '*.dart' '*.c' '*.cc' '*.cpp' '*.h' '*.hpp' \
-                             '*.cmake' 'CMakeLists.txt' '*.yml' '*.yaml' || true)
+                             '*.cmake' 'CMakeLists.txt' '*.yml' '*.yaml' \
+                             'LICENSE' '.gitattributes' || true)
           if [ -z "$files" ]; then echo "no text files to scan"; exit 0; fi
           if echo "$files" | xargs grep -nP '[^\x00-\x7F]'; then
             echo "::error::Non-ASCII text found. Tracked text must be ASCII."

@@ -27,7 +27,7 @@ CMakeLists.txt text
 *.ttf     binary
 *.otf     binary
 
-# Native artefacts (see .gitignore — these should not be committed at all)
+# Native artefacts (see .gitignore -- these should not be committed at all)
 *.dll     binary
 *.so      binary
 *.dylib   binary
