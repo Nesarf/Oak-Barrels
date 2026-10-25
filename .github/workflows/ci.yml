@@ -146,6 +146,10 @@ jobs:
         include:
           - os: ubuntu-latest
             station: build/oak-barrels
+          - os: macos-latest
+            # Also a unix-socket platform, and the one where MSG_NOSIGNAL is
+            # absent, so the fallback in the send path compiles here first.
+            station: build/oak-barrels
           - os: windows-latest
             # The default generator on Windows is multi-config, so the binary
             # lands under Release/ rather than at the build root.
