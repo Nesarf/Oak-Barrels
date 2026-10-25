@@ -263,6 +263,26 @@ jobs:
             --output-file coverage.info --ignore-errors unused
           lcov --summary coverage.info
 
+      # The floor sits below the current number on purpose: it exists to catch a
+      # fall, not to make every new line pay for itself before it is tested.
+      # Raise it when the margin gets comfortable, never lower it.
+      - name: Enforce the floor
+        run: |
+          set -euo pipefail
+          lines=$(lcov --summary coverage.info 2>&1 \
+            | sed -n 's/.*lines\.*: \([0-9.]*\)%.*/\1/p')
+          if [ -z "$lines" ]; then
+            echo "::error::could not read a line coverage figure"
+            exit 1
+          fi
+          echo "line coverage: $lines%"
+          if awk -v value="$lines" 'BEGIN { exit (value < 85) ? 1 : 0 }'; then
+            echo "ok: at or above the 85% floor"
+          else
+            echo "::error::line coverage fell below the 85% floor"
+            exit 1
+          fi
+
       - uses: actions/upload-artifact@v7
         with:
           name: native-coverage
@@ -350,5 +370,21 @@ jobs:
         run: dart format --output=none --set-exit-if-changed .
       - name: Analyze
         run: dart analyze --fatal-infos
-      - name: Test
-        run: dart test
+      - name: Test, with coverage
+        run: dart test --coverage=coverage
+
+      # The lcov formatter ships as its own package, so it is fetched rather
+      # than assumed. Only lib/ is measured: a test file covering itself says
+      # nothing about the client.
+      - name: Turn the coverage into lcov
+        run: |
+          set -euo pipefail
+          dart pub global activate coverage
+          dart pub global run coverage:format_coverage \
+            --lcov --in=coverage --out=coverage.lcov --report-on=lib
+          echo "records: $(grep -c '^DA:' coverage.lcov || true)"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dart-coverage
+          path: coverage.lcov

@@ -420,6 +420,41 @@ void main() {
       await relay.shutdown();
     });
 
+    test('writes a transcript when asked for one', () async {
+      // Standard error is not part of the protocol, so this is the only way to
+      // see the transcript: drive the real station and read what it said on the
+      // side channel. It is also the check that the flag reaches the session at
+      // all, which a unit test on the session alone cannot make.
+      final process = await Process.start(station!, <String>['--debug-text']);
+      addTearDown(process.kill);
+
+      final errors = process.stderr.transform(utf8.decoder).join();
+
+      const hello = Frame(MessageType.hello, <String, Object?>{
+        'revisions': <int>[1],
+      });
+      process.stdin.add(hello.encode());
+      await process.stdin.flush();
+
+      // Close before reading: the station reads until end of input, and a test
+      // that waited for a reply on a still-open stream would be relying on the
+      // station not buffering rather than on the protocol.
+      await process.stdin.close();
+
+      final decoder = FrameDecoder();
+      final replies = <Frame>[];
+      await for (final chunk in process.stdout) {
+        replies.addAll(decoder.add(chunk));
+      }
+      expect(replies.first.type, MessageType.helloAck);
+
+      await process.exitCode;
+
+      final transcriptText = await errors;
+      expect(transcriptText, contains('< HELLO'));
+      expect(transcriptText, contains('> HELLO_ACK'));
+    });
+
     test('rejects an argument it does not understand', () async {
       final result = await Process.run(station!, <String>['--frobnicate']);
       expect(result.exitCode, 2);

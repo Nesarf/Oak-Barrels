@@ -34,6 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   package now reports no warnings and a 33 KB archive instead of 99 KB.
 - A native coverage job, built with the compiler's own `--coverage` flag and
   summarised with lcov, with the raw `coverage.info` kept as an artifact.
+- An end-to-end case for `--debug-text`: it starts the real station and reads
+  its standard error, so the flag reaching the session is checked by a machine
+  rather than by hand.
+- `docs/RELEASING.md`, the release checklist in the order it has to happen,
+  from the three files that carry the version to the dispatch that attaches
+  packages to the tag.
 
 ### Changed
 
@@ -50,6 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The build jobs cache their build tree and the Dart package cache, keyed on
   the sources and the architecture, so a repeat run recompiles less and one
   architecture never reuses another's object files.
+- The coverage job enforces an 85% line floor, well under the 91.3% it measures
+  today, so a fall is caught without making every new line pay for itself
+  before it is tested. The Dart job now produces an lcov report of its own and
+  keeps it as an artifact.
 
 ## [0.2.0] - 2026-10-25
 
