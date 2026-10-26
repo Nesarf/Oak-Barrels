@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/RELEASING.md` gains the step its first real run taught us: a tag and a
   release are two different things, and the packages attach to the release.
   Three package jobs reported "release not found" before that.
+- `CONTRIBUTING.md`'s checklist now matches what CI actually enforces: the
+  `--config Release` build, the coverage floor, a conformance-map entry for a
+  new section 11 test, and `docs/RELEASING.md` for a release. The README's flag
+  table gained `--version` and `--help`, which the usage had all along.
 
 ## [0.3.0] - 2026-10-25
 

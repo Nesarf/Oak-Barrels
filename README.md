@@ -152,6 +152,8 @@ baked into the build.
 | `--search-root <dir>` | a directory to examine. Repeatable. |
 | `--probe-profile <file>` | how to talk to whatever is found there |
 | `--debug-text` | write a one-line transcript of every frame to standard error |
+| `--version` | print the station's own version and exit |
+| `--help` | print the usage and exit |
 
 Both the search location and the symbol names arrive at run time, from the host.
 That is how a station binds an engine it has never heard of, and why it can do

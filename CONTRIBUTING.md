@@ -149,9 +149,10 @@ build(cmake): remove configure-time vendor path lookup
 
 ## Pull request checklist
 
-- [ ] `cmake --build build` succeeds
+- [ ] `cmake --build build --config Release` succeeds
 - [ ] `dart analyze` is clean
 - [ ] `dart test` passes
+- [ ] Line coverage stays at or above the floor the coverage job enforces
 - [ ] No version strings, absolute paths, or vendor names introduced outside
       the permitted place (checked by the CI hygiene job)
 - [ ] Tracked text is ASCII
@@ -160,6 +161,8 @@ build(cmake): remove configure-time vendor path lookup
 - [ ] Protocol changes are reflected in `docs/RELAY_PROTOCOL.md`, which is
       normative -- if the doc and the code disagree, the doc wins and the code
       is wrong
+- [ ] A test that closes a section 11 clause is named in `docs/CONFORMANCE.md`
+- [ ] A release follows `docs/RELEASING.md`, in the order that document gives
 
 ## Reporting a build failure
 
