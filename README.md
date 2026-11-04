@@ -8,6 +8,11 @@
 
 [![CI](https://github.com/Nesarf/Oak-Barrels/actions/workflows/ci.yml/badge.svg)](https://github.com/Nesarf/Oak-Barrels/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/Nesarf/Oak-Barrels)](https://github.com/Nesarf/Oak-Barrels/releases/latest)
+
+Prebuilt packages for Linux, macOS and Windows sit on the
+[releases page](https://github.com/Nesarf/Oak-Barrels/releases/latest); unpack
+one and it runs.
 
 ---
 
