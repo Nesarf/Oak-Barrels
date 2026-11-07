@@ -156,7 +156,9 @@ __declspec(dllexport) void oak_shim_post(const char *name) {
     logLine("prepare failed");
     return;
   }
-  midiOutLongMsg(g_out, &header, sizeof(header));
+
+  const MMRESULT queued = midiOutLongMsg(g_out, &header, sizeof(header));
+  if (queued != MMSYSERR_NOERROR) logResult("longMsg failed", queued);
 
   /* The driver sends asynchronously and marks the header when it is finished.
    * Releasing before that is a race the relay cannot see, so wait for the flag

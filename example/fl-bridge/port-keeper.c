@@ -61,7 +61,12 @@ static void CALLBACK onPortData(VM_PORT port, unsigned char *data, unsigned long
   (void)port;
   (void)instance;
   if (g_port == NULL || g_send == NULL) return;
+
   g_send(g_port, data, length);
+
+  char buffer[64];
+  snprintf(buffer, sizeof(buffer), "forwarded %lu bytes", length);
+  logLine(buffer);
 }
 
 int main(int argc, char **argv) {
