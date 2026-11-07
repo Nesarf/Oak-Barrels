@@ -69,5 +69,10 @@ under that name in the MIDI settings dialog.
 It prints the action name to the hint line, and it is the last hop: without it
 the bytes reach the port and stop there.
 
+The hint line keeps only the newest message, which is worth knowing while
+testing: a POST followed immediately by a SET shows the SET, so an action that
+did arrive looks absent. When checking that one particular action arrived, send
+it on its own.
+
 The wire format is deliberately small: a POST name travels as
 `F0 7D <utf-8 name> F7`, and a SET value as control change 0 on channel 1.
