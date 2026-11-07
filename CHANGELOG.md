@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `example/fl-bridge`, a worked example of the relay driving a DAW: a shim the
+  station binds by resolved symbols, a keeper that owns the virtual MIDI port
+  and starts on demand, and the controller script on the DAW side. Windows only,
+  because both halves of that side are.
+
 ### Fixed
 
 - `docs/RELEASING.md` gains the step its first real run taught us: a tag and a
