@@ -61,8 +61,11 @@ the same port with midiIn and prints what arrives.
 
 ## The script
 
-The controller script lives on the FL side, at
-`Documents\Image-Line\FL Studio\Settings\Hardware\OakBarrels\device_OakBarrels.py`.
+`device_OakBarrels.py` in this directory is what FL runs. FL only loads
+controller scripts from its own settings folder, so copy it to
+`Documents\Image-Line\FL Studio\Settings\Hardware\OakBarrels\` and it shows up
+under that name in the MIDI settings dialog.
+
 It prints the action name to the hint line, and it is the last hop: without it
 the bytes reach the port and stop there.
 
