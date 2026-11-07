@@ -8,6 +8,7 @@ pubspec.lock
 
 # Native build output
 src/build/
+example/fl-bridge/dist/
 cmake-build-*/
 CMakeCache.txt
 CMakeFiles/
