@@ -1,0 +1,11 @@
+{
+  "profiles": [
+    {
+      "class": "engine.flstudio.midi",
+      "bindings": [
+        { "role": "post", "symbol": "oak_shim_post", "shape": "name" },
+        { "role": "set", "symbol": "oak_shim_set", "shape": "level" }
+      ]
+    }
+  ]
+}

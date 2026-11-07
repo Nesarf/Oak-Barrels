@@ -18,6 +18,7 @@ CMakeFiles/
 *.so
 *.dylib
 *.dll
+*.exe
 *.exp
 *.pdb
 *.ilk
