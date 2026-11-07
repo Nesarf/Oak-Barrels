@@ -157,6 +157,14 @@ __declspec(dllexport) void oak_shim_post(const char *name) {
     return;
   }
   midiOutLongMsg(g_out, &header, sizeof(header));
+
+  /* The driver sends asynchronously and marks the header when it is finished.
+   * Releasing before that is a race the relay cannot see, so wait for the flag
+   * with a bound: a stuck driver must not stall the session. */
+  for (int attempt = 0; attempt < 200; ++attempt) {
+    if ((header.dwFlags & MHDR_DONE) != 0) break;
+    Sleep(1);
+  }
   midiOutUnprepareHeader(g_out, &header, sizeof(header));
 
   logResult("posted bytes", (unsigned long)(usable + 3));

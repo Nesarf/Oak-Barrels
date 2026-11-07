@@ -29,6 +29,17 @@ one session and then exits, so a port it created would go away with it.
 the port reachable by a writer (midiOut) and a reader (midiIn) at the same
 time.
 
+## Two things that bite
+
+The port outlives the station but not the keeper. If the keeper is ended, the
+port disappears and is recreated on the next call, and FL's input handle is left
+pointing at the old one: refresh the device list, or restart FL, before
+expecting anything to arrive.
+
+Do not enable the same port under Output as well. FL would then send its own
+clock into the port and read it back as input, and playback starts and stops in
+quick succession -- that loop lives inside FL, not in the relay.
+
 ## Build
 
 Needs a MinGW toolchain on PATH. The virtual port comes from the loopMIDI
