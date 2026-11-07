@@ -2,9 +2,10 @@
  * arrives here leaves again as MIDI on the oak-barrels port.
  *
  * The shim does not own that port. A long-lived keeper does, because the relay
- * station is a one-session process and would take the port down with it. This
- * module opens the port with midiOut and writes into it; whoever reads the
- * port afterwards -- FL Studio, a listener -- sees the bytes.
+ * station is a one-session process and would take the port down with it. If the
+ * keeper is not running when the relay first calls in, the shim starts it: the
+ * usual order is DSH driving the relay, so nothing should have to be started by
+ * hand before that.
  *
  * Exported shapes, matching the probe profile:
  *   oak_shim_post(const char*)  -- POST, the action name
@@ -16,13 +17,41 @@
 #include <mmsystem.h>
 #include <stdio.h>
 #include <string.h>
+#include <wchar.h>
 
 #define PORT_NAME "oak-barrels"
+#define KEEPER_NAME L"port-keeper.exe"
 
 static HMIDIOUT g_out = NULL;
 
+/* The module's own handle, which is not the same as the process's: the relay
+ * loads this dll into its own address space. */
+static HMODULE selfModule(void) {
+  HMODULE module = NULL;
+  GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+                     (LPCWSTR)&selfModule, &module);
+  return module;
+}
+
+/* The log sits beside the dll, because a module loaded by somebody else's
+ * process has no console to complain on. */
 static void logLine(const char *text) {
-  FILE *file = fopen("E:\\DaShaoHuo\\cache\\tmp\\fl-bridge\\shim.log", "a");
+  wchar_t modulePath[MAX_PATH];
+  HMODULE module = selfModule();
+  if (module == NULL) return;
+  if (GetModuleFileNameW(module, modulePath, MAX_PATH) == 0) return;
+
+  wchar_t *slash = wcsrchr(modulePath, L'\\');
+  if (slash == NULL) return;
+  *(slash + 1) = L'\0';
+
+  char directory[MAX_PATH];
+  WideCharToMultiByte(CP_ACP, 0, modulePath, -1, directory, MAX_PATH, NULL, NULL);
+
+  char full[MAX_PATH + 32];
+  snprintf(full, sizeof(full), "%sshim.log", directory);
+
+  FILE *file = fopen(full, "a");
   if (file == NULL) return;
   fprintf(file, "%s\n", text);
   fclose(file);
@@ -34,11 +63,8 @@ static void logResult(const char *what, unsigned long value) {
   logLine(buffer);
 }
 
-/* Opens the port the keeper owns, once. Missing port is reported once and then
- * retried on the next call, because the keeper may start after the relay. */
-static void ensureOut(void) {
-  if (g_out != NULL) return;
-
+/* One attempt to open the port by name. */
+static int tryOpenPort(void) {
   const UINT count = midiOutGetNumDevs();
   for (UINT i = 0; i < count; ++i) {
     MIDIOUTCAPSA caps;
@@ -47,13 +73,62 @@ static void ensureOut(void) {
 
     if (midiOutOpen(&g_out, i, 0, 0, CALLBACK_NULL) == MMSYSERR_NOERROR) {
       logLine("port opened for writing");
-    } else {
-      logResult("midiOutOpen failed", GetLastError());
+      return 1;
     }
-    return;
+    logResult("midiOutOpen failed", GetLastError());
+    return 0;
   }
+  return 0;
+}
 
-  logLine("port not found yet");
+/* Starts the keeper that sits beside this dll, so the port exists after a short
+ * wait. Detached on purpose: the keeper must outlive whichever process the
+ * relay happens to be running in. */
+static void startKeeper(void) {
+  wchar_t modulePath[MAX_PATH];
+  HMODULE module = selfModule();
+  if (module == NULL) return;
+  if (GetModuleFileNameW(module, modulePath, MAX_PATH) == 0) return;
+
+  wchar_t *slash = wcsrchr(modulePath, L'\\');
+  if (slash == NULL) return;
+  *(slash + 1) = L'\0';
+
+  wchar_t keeper[MAX_PATH];
+  _snwprintf(keeper, MAX_PATH, L"%s%s", modulePath, KEEPER_NAME);
+  keeper[MAX_PATH - 1] = L'\0';
+
+  wchar_t commandLine[MAX_PATH + 8];
+  _snwprintf(commandLine, MAX_PATH + 8, L"\"%s\" 0", keeper);
+  commandLine[MAX_PATH + 7] = L'\0';
+
+  STARTUPINFOW startup;
+  PROCESS_INFORMATION process;
+  ZeroMemory(&startup, sizeof(startup));
+  ZeroMemory(&process, sizeof(process));
+  startup.cb = sizeof(startup);
+
+  if (CreateProcessW(keeper, commandLine, NULL, NULL, FALSE, 0, NULL, NULL, &startup,
+                     &process)) {
+    CloseHandle(process.hThread);
+    CloseHandle(process.hProcess);
+    logLine("keeper started on demand");
+  } else {
+    logResult("keeper start failed", GetLastError());
+  }
+}
+
+/* Opens the port, starting the keeper if that is what it takes. */
+static void ensureOut(void) {
+  if (g_out != NULL) return;
+  if (tryOpenPort()) return;
+
+  logLine("port not there, starting the keeper");
+  startKeeper();
+  Sleep(700);
+
+  if (tryOpenPort()) return;
+  logLine("port still not found");
 }
 
 /* POST: the action name travels as a system-exclusive message, so the payload
